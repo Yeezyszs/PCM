@@ -559,7 +559,7 @@
     color: var(--muted);
   }
 
-  .pag-btns { display: flex; gap: 6px; }
+  .pag-btns { display: flex; gap: 5px; align-items: center; flex-wrap: nowrap; }
 
   .pag-btn {
     padding: 4px 10px;
@@ -570,10 +570,22 @@
     cursor: pointer;
     font-size: .78rem;
     font-family: var(--mono);
+    white-space: nowrap;
+    min-width: 32px;
+    text-align: center;
   }
 
   .pag-btn:hover { border-color: var(--white); color: var(--white); }
   .pag-btn.active { background: var(--white); color: var(--navy); border-color: var(--white); font-weight: 700; }
+  .pag-btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+  .pag-ellipsis { color: var(--muted); font-family: var(--mono); font-size: .78rem; padding: 0 2px; user-select: none; }
+
+  /* ── SCROLL HORIZONTAL NAS TABELAS ── */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-wrap::-webkit-scrollbar { height: 6px; }
+  .tbl-wrap::-webkit-scrollbar-track { background: var(--surface2); }
+  .tbl-wrap::-webkit-scrollbar-thumb { background: var(--navy-light); border-radius: 3px; }
+  .tbl-wrap table { min-width: 700px; }
 
   /* ── FILTER ROW ── */
   .filter-row {
@@ -785,6 +797,7 @@
           <span class="card-title">Últimas Ordens de Serviço</span>
           <button class="btn btn-secondary btn-sm" onclick="goPage('ordens')">Ver todas →</button>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -793,6 +806,7 @@
           </thead>
           <tbody id="dash-os-tbody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -828,6 +842,7 @@
             </select>
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -836,6 +851,7 @@
           </thead>
           <tbody id="os-tbody"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="os-count-label"></span>
           <div class="pag-btns" id="os-pages"></div>
@@ -864,6 +880,7 @@
             </select>
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -872,6 +889,7 @@
           </thead>
           <tbody id="prev-tbody"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="prev-count-label"></span>
           <div class="pag-btns" id="prev-pages"></div>
@@ -906,6 +924,7 @@
             </select>
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -914,6 +933,7 @@
           </thead>
           <tbody id="plan-tbody"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="plan-count-label"></span>
           <div class="pag-btns" id="plan-pages"></div>
@@ -1038,12 +1058,14 @@
             <input type="text" id="colab-search" placeholder="Buscar…" oninput="renderColaboradores()">
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr><th>#</th><th>Nome</th><th>Função</th><th>Setor</th><th>Ações</th></tr>
           </thead>
           <tbody id="colab-tbody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -3234,11 +3256,24 @@ function renderPagination(containerId, totalPages, current, onChange) {
   const container = document.getElementById(containerId);
   if (!container) return;
   if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+  // Páginas a exibir: sempre 1, última, e current ±2
+  const show = new Set([1, totalPages]);
+  for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) show.add(i);
+  const sorted = [...show].sort((a, b) => a - b);
+
   let html = '';
-  for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="pag-btn ${i===current?'active':''}" onclick="(${onChange})(${i})">${i}</button>`;
+  let prev = 0;
+  for (const p of sorted) {
+    if (p - prev > 1) html += '<span class="pag-ellipsis">…</span>';
+    html += `<button class="pag-btn${p === current ? ' active' : ''}" onclick="(${onChange})(${p})">${p}</button>`;
+    prev = p;
   }
-  container.innerHTML = html;
+
+  container.innerHTML =
+    `<button class="pag-btn" ${current <= 1 ? 'disabled' : ''} onclick="(${onChange})(${current - 1})">‹</button>` +
+    html +
+    `<button class="pag-btn" ${current >= totalPages ? 'disabled' : ''} onclick="(${onChange})(${current + 1})">›</button>`;
 }
 
 // ══════════════════════════════════════════
