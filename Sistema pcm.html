@@ -486,6 +486,25 @@
   .tag-prm { background: rgba(52,211,153,.2);  color: #6effd4; }
   .tag-irm { background: rgba(251,191,36,.2);  color: #fde68a; }
 
+  /* ── LUBRIFICAÇÃO ── */
+  .badge-gray { background: rgba(241,255,255,.12); color: var(--muted); }
+
+  /* ── CAIXA FERRAMENTAS ── */
+  .caixa-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .caixa-card-title {
+    font-size: .8rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   /* ── CHECKLIST ── */
   .checklist-grid {
     display: grid;
@@ -717,8 +736,16 @@
     <div class="nav-item" onclick="goPage('equipamentos')">
       <span class="nav-icon">⚙️</span> Equipamentos
     </div>
+    <div class="nav-item" onclick="goPage('lubrificacao')">
+      <span class="nav-icon">🛢️</span> Lubrificação
+    </div>
     <div class="nav-item" onclick="goPage('ferramentas')">
       <span class="nav-icon">🗜️</span> Ferramentas
+    </div>
+
+    <div class="nav-section">Pessoas</div>
+    <div class="nav-item" onclick="goPage('colaboradores')">
+      <span class="nav-icon">👷</span> Colaboradores
     </div>
 
     <div class="nav-section">Administração</div>
@@ -940,6 +967,84 @@
       </div>
 
       <div class="checklist-grid" id="checklist-grid"></div>
+    </div>
+
+
+    <!-- ══ LUBRIFICAÇÃO ══ -->
+    <div id="page-lubrificacao" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Plano de Lubrificação</div>
+          <div class="page-sub">Controle de lubrificação por setor e equipamento</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="lu-setor-filter" onchange="renderLubrificacao()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-family:var(--font);font-size:.82rem;">
+            <option value="">Todos os Setores</option>
+          </select>
+          <select id="lu-freq-filter" onchange="renderLubrificacao()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-family:var(--font);font-size:.82rem;">
+            <option value="">Todas Frequências</option>
+            <option>SEMANALMENTE</option>
+            <option>SEMANAL</option>
+            <option>QUINZENAL</option>
+            <option>MENSAL</option>
+            <option>TRIMESTRALMENTE</option>
+          </select>
+          <button class="btn btn-primary" onclick="openModalLuExec()">✔ Registrar Execução</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd" style="flex-wrap:nowrap;overflow-x:auto;">
+          <span class="card-title" id="lu-count-label">Carregando…</span>
+          <div class="search-box">
+            <span style="color:var(--muted)">🔍</span>
+            <input type="text" id="lu-search" placeholder="Buscar equipamento ou item…" oninput="renderLubrificacao()">
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Setor</th>
+                <th>Equipamento</th>
+                <th>Item a Lubrificar</th>
+                <th>Lubrificante</th>
+                <th>Bombadas</th>
+                <th>Frequência</th>
+                <th>Última Exec.</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="lu-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="lu-pag" class="pagination" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- ══ COLABORADORES ══ -->
+    <div id="page-colaboradores" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Colaboradores</div>
+          <div class="page-sub">Equipe de manutenção — técnicos, operadores e supervisores</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-colaborador')">＋ Novo Colaborador</button>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title" id="colab-count-label">Colaboradores</span>
+          <div class="search-box">
+            <span style="color:var(--muted)">🔍</span>
+            <input type="text" id="colab-search" placeholder="Buscar…" oninput="renderColaboradores()">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Nome</th><th>Função</th><th>Setor</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="colab-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ══ CADASTROS ══ -->
@@ -1307,6 +1412,93 @@
   </div>
 </div>
 
+
+<!-- ══ MODAL COLABORADOR ══ -->
+<div class="modal-overlay" id="modal-colaborador">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-hd">
+      <div class="modal-title">Novo Colaborador</div>
+      <button class="modal-close" onclick="closeModal('modal-colaborador')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group span2">
+          <label>Nome Completo</label>
+          <input type="text" id="fc-nome" placeholder="Ex: Valmir Silva">
+        </div>
+        <div class="form-group">
+          <label>Função</label>
+          <select id="fc-funcao">
+            <option>Técnico Mecânico</option>
+            <option>Técnico Elétrico</option>
+            <option>Operador</option>
+            <option>Supervisor</option>
+            <option>Gestor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Setor</label>
+          <input type="text" id="fc-setor" placeholder="Ex: Manutenção">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-colaborador')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarColaborador()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL REGISTRAR EXECUÇÃO DE LUBRIFICAÇÃO ══ -->
+<div class="modal-overlay" id="modal-lu-exec">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-hd">
+      <div class="modal-title">Registrar Execução de Lubrificação</div>
+      <button class="modal-close" onclick="closeModal('modal-lu-exec')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Setor</label>
+          <select id="fle-setor" onchange="populateLuEquip()">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Equipamento</label>
+          <select id="fle-equip" onchange="populateLuItem()">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label>Item Lubrificado</label>
+          <select id="fle-item">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data de Execução</label>
+          <input type="date" id="fle-data">
+        </div>
+        <div class="form-group">
+          <label>Executante</label>
+          <select id="fle-exec">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label>Observação</label>
+          <input type="text" id="fle-obs" placeholder="Opcional">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-lu-exec')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarLuExec()">Registrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════
 // DATA — extraído das planilhas
@@ -1318,15 +1510,15 @@ const DB = {
     {id:1,data:'2024-07-25',hora:'16:10',req:'Reginaldo',setor:'Secagem',tipo:'Corretiva',natureza:'Predial',desc:'Troca da maçaneta da porta do CCM.',prioridade:'Baixa',dataProg:'2024-07-25',dataConcl:'2024-07-25',realizado:'Retirada e troca da maçaneta danificada por outra nova.',exec:'Valmir / Luan',status:'Concluído'},
     {id:2,data:'2024-07-25',hora:'19:31',req:'Reginaldo',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca das serrinhas do rolo da cevadeira.',prioridade:'Alta',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada do rolo da cevadeira para troca das serrinhas por empresa terceira, regulado e recolocado pela manutenção.',exec:'Valmir / Luan',status:'Concluído'},
     {id:3,data:'2024-07-25',hora:'19:29',req:'Reginaldo',setor:'Caldeira',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca das borrachas dos visores do nível de água da caldeira.',prioridade:'Baixa',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca de um vidro, troca das borrachas dos dois visores de nível da caldeira.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:4,data:'2024-07-26',hora:'00:00',req:'Daniel',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da junta do registro de entrada de vapor, forno 1.',prioridade:'Média',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada e troca da junta do registro de vapor do forno 1.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:5,data:'2024-07-26',hora:'05:30',req:'Daniel',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Correção da proteção da rosca da cancha 1.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Correção da proteção da rosca no local.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:6,data:'2024-07-27',hora:'10:43',req:'Reginaldo',setor:'Caldeira',tipo:'Corretiva',natureza:'Predial',desc:'Troca da plataforma da frente da caldeira.',prioridade:'Média',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada da chapa antiga, recolocada chapa nova, corte e solda.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:7,data:'2024-07-27',hora:'10:52',req:'Reginaldo',setor:'Secagem',tipo:'melhoria',natureza:'Mecânica',desc:'Troca da tela da peneira reserva por uma 4mm.',prioridade:'Baixa',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca da tela da peneira reserva do forno 1 por uma 4mm.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:8,data:'2024-07-29',hora:'08:00',req:'Luan',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da junta do nível do forno 1.',prioridade:'Alta',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada e troca da junta do nível do forno 1.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:9,data:'2024-07-26',hora:'08:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rolamento da peneira do rapador.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Troca de 1 bucha (HE311), 1 bucha (H317) e 1 rolamento (22217).',exec:'Luan / Valmir',status:'Concluído'},
-    {id:10,data:'2024-07-26',hora:'08:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da válvula de ar do inversor das caixas do filtro prensa.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Retirada e troca da válvula de ar do inversor das caixas do filtro prensa.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:11,data:'2024-07-31',hora:'08:00',req:'Luan',setor:'Caldeira',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da junta da válvula de retorno do vapor.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca da junta da válvula de retorno do vapor.',exec:'Valmir / Luan',status:'Concluído'},
-    {id:12,data:'2024-07-30',hora:'17:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rolamento do redutor da caixa dosadeira da cevadeira.',prioridade:'Alta',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca do rolamento (UC211-32) do redutor da caixa dosadeira da cevadeira.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:4,data:'2024-07-26',hora:'08:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do retentor da bomba de transferência de massa.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Retirada da bomba, troca do retentor e recolocação.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:5,data:'2024-07-26',hora:'09:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do estator da bomba de transferência de massa.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Retirada da bomba, troca do estator e recolocação.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:6,data:'2024-07-26',hora:'14:20',req:'Reginaldo',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da gaxeta do eixo da peneira vibratória.',prioridade:'Média',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca da gaxeta do eixo da peneira vibratória.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:7,data:'2024-07-29',hora:'07:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rotor e estator da bomba de transporte de massa.',prioridade:'Alta',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada da bomba, troca do rotor e estator e recolocação.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:8,data:'2024-07-29',hora:'10:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Regulagem da cevadeira após troca das serrinhas.',prioridade:'Alta',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Regulagem da cevadeira após troca das serrinhas pelo técnico da empresa terceira.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:9,data:'2024-07-30',hora:'08:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca de rolamento da peneira vibratória.',prioridade:'Alta',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca do rolamento da peneira vibratória.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:10,data:'2024-07-30',hora:'13:00',req:'Luan',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca de correia do transportador de farinha.',prioridade:'Média',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca da correia do transportador de farinha.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:11,data:'2024-07-31',hora:'06:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Parada para troca do rolo da cevadeira — 6h às 11h.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca do rolo completo da cevadeira.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:12,data:'2024-07-31',hora:'11:00',req:'Luan',setor:'Extração',tipo:'Preventiva',natureza:'Mecânica',desc:'Verificação geral dos mancais da rosca transportadora após parada.',prioridade:'Média',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Verificação e lubrificação de todos os mancais da rosca transportadora.',exec:'Valmir / Luan',status:'Concluído'},
     {id:13,data:'2024-07-31',hora:'17:30',req:'Luan',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Trocar junta do flange do sensor de temperatura.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca da junta do flange do sensor de temperatura.',exec:'Valmir / Luan',status:'Concluído'},
     {id:14,data:'2024-08-01',hora:'08:00',req:'Luan',setor:'Ensaque 2',tipo:'melhoria',natureza:'Oficina',desc:'Colocar chapa de inox onde está desfazendo as peneiras.',prioridade:'Baixa',dataProg:'2024-08-01',dataConcl:'2024-08-01',realizado:'Foi aplicada chapa de inox onde estava desfazendo as peneiras.',exec:'Valmir / Luan',status:'Concluído'},
     {id:15,data:'2024-07-31',hora:'07:30',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rolo da cevadeira.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca do rolo da cevadeira, parada de processo 06:00 às 11:00.',exec:'Valmir / Luan',status:'Concluído'},
@@ -1336,106 +1528,655 @@ const DB = {
   ],
 
   equipamentos: [
-    {setor:'EXTRAÇÃO',nome:'Rosca transportadora de mandioca',componentes:[{qty:2,nome:'Mancais F 215'},{qty:2,nome:'Rolamentos UC 215 Eixo 3"'},{qty:1,nome:'Moto Redutor GD50 1×31,25 – 5 CV 4P'}]},
-    {setor:'EXTRAÇÃO',nome:'Pré lavador de mandioca',componentes:[{qty:2,nome:'Mancais SN 522 MDS'},{qty:2,nome:'Rolamentos 22222 KC3'},{qty:2,nome:'Buchas H 322'},{qty:1,nome:'Redutor Planetario PG2503 + Motor 20 CV'}]},
-    {setor:'EXTRAÇÃO',nome:'Lavador de mandioca',componentes:[{qty:2,nome:'Mancais SN 522 MDS'},{qty:2,nome:'Rolamentos 22222 KC3'},{qty:2,nome:'Buchas H 322'},{qty:1,nome:'Redutor Brevini ET3250 + Motor 25 CV'}]},
-    {setor:'EXTRAÇÃO',nome:'Peneira de separação / reaproveitamento de água',componentes:[{qty:1,nome:'Motor Trifásico 5 CV'},{qty:2,nome:'Rolamentos'}]},
-    {setor:'EXTRAÇÃO',nome:'Picador de mandioca',componentes:[{qty:1,nome:'Motor Trifásico IP55'},{qty:2,nome:'Mancais'},{qty:1,nome:'Conjunto de facas'}]},
-    {setor:'EXTRAÇÃO',nome:'Cevadeira rotor Ø800 mm',componentes:[{qty:1,nome:'Rolo cevadeira c/ serrinhas'},{qty:1,nome:'Redutor caixa dosadeira + Rolamento UC211-32'},{qty:1,nome:'Motor Trifásico'}]},
-    {setor:'EXTRAÇÃO',nome:'Filtro prensa automático 40 placas',componentes:[{qty:1,nome:'Inversores de ar (válvulas)'},{qty:2,nome:'Bombas de carregamento'},{qty:1,nome:'Tanque pulmão'}]},
-    {setor:'SECAGEM',nome:'Forno contínuo a vapor (2x)',componentes:[{qty:2,nome:'Sensores de temperatura (flange)'},{qty:2,nome:'Registro de entrada de vapor'},{qty:4,nome:'Juntas e vedações'}]},
-    {setor:'SECAGEM',nome:'Peneira vibratória (2x)',componentes:[{qty:3,nome:'Rolamentos LA 22211 EAK'},{qty:3,nome:'Buchas HE 311'},{qty:1,nome:'Rolamento LOA 22217 EAK'},{qty:2,nome:'Amortecedores de haste'}]},
-    {setor:'CALDEIRA',nome:'Caldeira a vapor',componentes:[{qty:2,nome:'Visores de nível de água + borrachas'},{qty:1,nome:'Válvula de retorno de vapor'},{qty:1,nome:'Plataforma frontal (chapa)'}]},
-    {setor:'ENSAQUE',nome:'Ensacadeira para envase (válvula)',componentes:[{qty:1,nome:'Motor'},{qty:2,nome:'Correias'},{qty:2,nome:'Rolamentos'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca transportadora de mandioca',componentes:[{qty:2,nome:'MANCAIS F 215'}, {qty:2,nome:'ROLAMENTOS UC 215 EIXO 3\'\''}, {qty:1,nome:'MOTO REDUTOR GD50 1 X 31,25 - SAÍDA 55,68 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Pré lavador de mandioca',componentes:[{qty:2,nome:'MANCAIS SN 522 MDS'}, {qty:2,nome:'ROLAMENTOS 22222 KC3'}, {qty:2,nome:'BUCHAS H 322 1° LINHA'}, {qty:1,nome:'REDUTOR PLANETARIO GEREMIA PG2503 RED 1X110 MC 4702.011.047 B5 16RPM SAÍDA + MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca transportadora de mandioca',componentes:[{qty:2,nome:'MANCAIS F 215'}, {qty:2,nome:'ROLAMENTOS UC 215 EIXO 3\'\''}, {qty:1,nome:'MOTO REDUTOR GD50 1 X 31,25 - SAÍDA 55,68 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Lavador de mandioca',componentes:[{qty:2,nome:'MANCAIS SN 522 MDS'}, {qty:2,nome:'ROLAMENTOS 22222 KC3'}, {qty:2,nome:'BUCHAS H 322 1° LINHA'}, {qty:1,nome:'REDUTOR BREVINI ET3250-MN1-110-619.5232.2742-B3 + MOTOR TRIF 220-380 IP55 25 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Peneira de separação de casquinha para reaproveitamento de água',componentes:[{qty:1,nome:'MANCAL F 211'}, {qty:1,nome:'ROLAMENTO UC 211 EIXO DE 2\'\''}, {qty:1,nome:'ROLAMENTO 1208 SC3'}, {qty:3,nome:'CORREIAS B 75 DENTADA'}, {qty:1,nome:'SELO MECANICO T01 1.3-4\'\' VITON'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'BOMBA CENTRIFUGA - MBL 7,5 CV 2P'}, {qty:1,nome:'POLIA FF Ø500 X 3 CANAL B'}, {qty:1,nome:'POLIA FF Ø110 X 3 CANAL B'}]},
+    {setor:'EXTRAÇÃO',nome:'Esteira de inspeção de raízes',componentes:[{qty:4,nome:'MANCAIS F208'}, {qty:4,nome:'ROLAMENTOS UC208 EIXO Ø40 mm'}, {qty:1,nome:'MOTO-REDUTOR GD 40 RED. 1 X 52,73 - SAÍDA 32,24 RPM - VAZADO + MOTOR WEG W22 IP55 - 4 POLOS 1740 RPM'}, {qty:1,nome:'CORREIA TRANSP PVC DUBLADA BRANCA ATOXICA 23 X 3 LONAS #5,5MM ESP.'}]},
+    {setor:'EXTRAÇÃO',nome:'Picador de mandioca',componentes:[{qty:2,nome:'MANCAIS SN 515 MDS'}, {qty:2,nome:'ROLAMENTOS 22215 KC3'}, {qty:2,nome:'BUCHAS HE 315'}, {qty:1,nome:'MOTOR W22 PREMIUM IR3 TRIF 220-380 IP55 10 CV 4P 1740 RPM'}, {qty:4,nome:'CORREIAS B72'}, {qty:1,nome:'POLIA DE AÇO CARBONO Ø400 mm X 4 CANAL B'}, {qty:1,nome:'POLIA FF Ø100 X 4 CANAL B'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca transportadora de mandioca picada',componentes:[{qty:1,nome:'MANCAL F 213'}, {qty:1,nome:'ROLAMENTO UC 213 EIXO 2.1-'}, {qty:3,nome:'CORREIAS B88 DENTADA'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3'}, {qty:1,nome:'SELO MECANICO T01 2.1-4\'\' VITON'}, {qty:1,nome:'ROLAMENTO 1210 SC3'}, {qty:1,nome:'POLIA FF TIPO R Ø600 mm X 3 CANAL B'}, {qty:1,nome:'POLIA FF TIPO S Ø100  mm X 3 CANAL B'}]},
+    {setor:'EXTRAÇÃO',nome:'Dosador de mandioca picada',componentes:[{qty:2,nome:'MANCAIS F 211'}, {qty:2,nome:'ROLAMENTOS UC 211 EIXO DE 2\'\''}, {qty:1,nome:'MOTO REDUTOR GD40 1X52,73 - SAIDA 32,24 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Cevadeira rotor Ø800 mm',componentes:[{qty:2,nome:'ROLAMENTOS 22217 + 02 BUCHAS H 317 - EIXO Ø75 MM'}, {qty:2,nome:'RETENTOR VEDABRÁS - 30609R2 - (100 X 130 X 13 MM)'}, {qty:1,nome:'RETENTOR VEDABRÁS - 30468R2 - (75 X 95 X 12 MM)'}, {qty:1,nome:'ACOPLAMENTO TIPO PNEU MODELO RD – 90'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 100 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'GUINCHO ELÉTRICO MOTOMIL 300 A 600KG 220 MONOFÁSICO'}, {qty:1,nome:'PLACA MAGNÉTICA 200 X 200MM – 7500 GRAUSS'}]},
+    {setor:'EXTRAÇÃO',nome:'Bomba de transporte de massa',componentes:[{qty:1,nome:'MOTO-REDUTOR GA 132 RED. 1 X 7,13 - SAÍDA 238,4 RPM – VAZADO + MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 3/8" COM 420 MM DE COMP.'}, {qty:1,nome:'ESTATOR 70.1 BORRACHA 206'}, {qty:1,nome:'ROTOR F70.1 INOX 304 MACIÇO'}]},
+    {setor:'EXTRAÇÃO',nome:'Tanque pulmão para filtro prensa - 11,50 m³',componentes:[{qty:1,nome:'VALVULA BORBOLETA DISCO INOX 304 COM ALAVANCA 8”'}]},
+    {setor:'EXTRAÇÃO',nome:'Bomba de carregamento para filtro prensa automático',componentes:[{qty:1,nome:'MOTO REDUTOR GA180 - 1X7,08 - SAÍDA 240 RPM - 30 CV 4P - COM PÉ E FLANGE DE SAÍDA + MOTOR TRIF 220-380 IP55 30 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 3/8" 660 MM DE COMP.'}, {qty:1,nome:'ESTATOR 2HF-80 NBRA C. FURO PARA SENSOR'}, {qty:1,nome:'ROTOR 2HF-80 INOX 304 MACICO'}]},
+    {setor:'EXTRAÇÃO',nome:'Filtro prensa automático FPA-44 com 40 placas',componentes:[{qty:1,nome:'MOTO-REDUTOR GD30 3R – RED. 1 X 140 – SAÍDA 12,14 RPM + MOTOR TRIF 220-380 IP55 0,75 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'O´RING CBV - 197 X 4 - Nbr-PT 70sh'}, {qty:1,nome:'O´RING CBV - 138 X 4 - Nbr-PT 70sh'}, {qty:1,nome:'O´RING CBV - 68 X 10 - Nbr-PT 70 sh'}, {qty:1,nome:'O´RING CBV - 268 x 4,5 - SPECI NBR - PT70SH'}, {qty:1,nome:'O´RING CBV - 327 x 4,5 - SPECI NBR - PT70SH'}, {qty:1,nome:'O´RING CBV - 347 x 4,5 - SPECI NBR - PT70SH'}, {qty:1,nome:'O´RING CBV - 367 x 4,5 - SPECI NBR - PT70SH'}, {qty:1,nome:'O´RING CBV - 402 x 4,5 - SPECI NBR - PT70SH'}, {qty:1,nome:'O´RING CBV - 167 x 3 - SPECI NBR - PT70SH'}, {qty:1,nome:'O´RING CBV - 94 X 3 - SPECI NBR - PT70SH'}, {qty:2,nome:'GAXETA MOLITHANE POLIPACK 650010417750326 - ØINT.264,60 X ØEXT.290,00 X 3/4" X 1/2" - PARKER'}, {qty:2,nome:'GAXETA MOLITHANE POLIPACK 375082506253263 - ØINT.8.1/4" X ØEXT.9" X 5/8" X 3/8" - PARKER 1 - ANEL RASPADOR D-8250 – PARKER'}, {qty:1,nome:'GAXETA APC - Nº1597 - 1" X 1.3/8" X 5/16"'}, {qty:1,nome:'FITA DE TEFLON COM BRONZE 1/8" X 1" X 1800MM DE COMPRIMENTO'}, {qty:1,nome:'MANGUEIRA MAA 300 1" - AR/ÁGUA 300 PSI - 3000 MM DE COMPRIMENTO'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'I3329911018 - BOMBA HIDR.ENG. P11A D04 AQ PARKER'}, {qty:1,nome:'I3329111134 - BOMBA HIDR.ENG. P11A D27 AZ PARKER'}, {qty:2,nome:'ACOPLAMENTO HDA AC42'}, {qty:1,nome:'ACOPLAMENTO HDA AC28'}, {qty:1,nome:'S314 - FILTRO SUCCAO S 314 1" NPT 50L (100004 )'}, {qty:1,nome:'S520 - FILTRO SUCCAO S 520 1.1/2" NPT 90L (100005 )'}, {qty:1,nome:'FILTRO DE RETORNO 1 BSP 10 NOM FR16-A010-08B'}, {qty:1,nome:'ROLAMENTO 6306 ZZ - 30 X 72 X 19 MM'}, {qty:4,nome:'ROLAMENTO 6205 ZZ - 25 X 52 X 15 MM'}, {qty:2,nome:'MANCAL P 208'}, {qty:2,nome:'ROLAMENTO UC 208 EIXO 1.1-2\'\''}, {qty:4,nome:'ENGRENAGENS EM AÇO INOX 304 PARA CORRENTE ASA 60 COM 15 DENTES'}, {qty:2,nome:'CORRENTE ASA 60 INOX 11850 mm DE COMP.'}, {qty:1,nome:'VALVULA GUILHOTINA LH S6000 4 CORPO E FACA INOX 316 PNEUMATICO COD-4W6AHSAWALE'}, {qty:1,nome:'VALVULA ESF TRIP TOTAL INOX 304 OD 3-4\'\' SWO C. ATUADOR DA32 MGA'}, {qty:1,nome:'VALVULA ESF TRIP TOTAL INOX 304 OD 1\'\' SWO C. ATUADOR DA52 MGA'}, {qty:1,nome:'VALVULA ESF TRIP TOTAL INOX 304 OD 1-1-4\'\' SWO C. ATUADOR DA52 MGA'}, {qty:1,nome:'VALVULA ESF TRIP TOTAL INOX 304 OD 2-1-2\'\' SWO C. ATUADOR DA75 MGA'}, {qty:1,nome:'VALVULA ESF TRIP TOTAL INOX 3-4\'\' SWO ALAVANCA MGA'}, {qty:1,nome:'VALVULA ESF TRIP TOTAL INOX 1\'\' SWO ALAVANCA MGA'}, {qty:1,nome:'COTOVELO GIRATÓRIO INOX 1/4 X 8MM'}, {qty:1,nome:'VÁLVULA SOLENOIDE P2A20RS25-IP02E DIRE 1/4 ADEX 5/2VIAS SOL 24VDC'}, {qty:2,nome:'BORNE RELE 24VCA/ACC REVERSÍVEL 6A COMPLETO SLIM 6MM'}, {qty:2,nome:'BORNE RELE 24VCA/ACC REVERSÍVEL 16A COMPLETO'}, {qty:2,nome:'RELE DE CONTROLE DE FASE TRIFÁSICO 183...528 VCA 2 REV F FASE'}, {qty:2,nome:'CONTATO AUXILIAR FRONTAL GVAE11 1 - SENSOR INDUTIVO DS-5MM 12/24VCC 3 FIOS PNP N/A 2M'}, {qty:2,nome:'SENSOR MAGNÉTICO KT-32R 10 - FUSÍVEL DE VIDRO 3A 5X20MM'}, {qty:1,nome:'TRANSMISSOR DE PRESSÃO WIKA 0-16 S11'}, {qty:1,nome:'TRANSMISSOR DE PRESSÃO WIKA 0-04 S11'}, {qty:2,nome:'CABO DE REDE RJ45 1M'}, {qty:1,nome:'MANGUEIRA PU AZUL 6MM - 3000 MM DE COMP.'}, {qty:2,nome:'MANGUEIRA PU AZUL 8MM - 3000 MM DE COMP.'}, {qty:2,nome:'CONEXÃO Y 6MM'}, {qty:2,nome:'CONECTOR COTOVELO GIRATÓRIO 1/8 X 6MM'}, {qty:1,nome:'FIM DE CURSO ZV1H 236-11ZP TELEMECANIC'}, {qty:1,nome:'FIM DE CURSO (ATUADORES) APL21ON'}]},
+    {setor:'EXTRAÇÃO',nome:'Tanque para retro-lavagem',componentes:[{qty:1,nome:'BOMBA THEBE THA-16 + MOTOR + MOTOR TRIF 220-380 IP55 3 CV 2P 3540 RPM PREM IR3'}, {qty:3,nome:'VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 4"'}, {qty:3,nome:'VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 3"'}, {qty:1,nome:'VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 2.1/2"'}, {qty:1,nome:'VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 1.1/2"'}]},
+    {setor:'EXTRAÇÃO',nome:'Caixa coletora de massa FPA-44',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTOS UC 208 - EIXO Ø40 MM'}, {qty:2,nome:'MANCAL F213'}, {qty:2,nome:'ROLAMENTOS UC213 - EIXO Ø63,5 MM'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 3/8" - 1600 MM DE COMPRIMENTO'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 5/8" - 1600 MM DE COMPRIMENTO'}, {qty:2,nome:'MOTO-REDUTOR GD40 - RED. 1 X 86,67 - SAÍDA 19,61 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'MOTO-REDUTOR GD60 - RED. 1 X 216,79 - SAÍDA 5,30 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'CILINDRO PNEUMÁTICO PARKER P1E-G100MSO-0350'}, {qty:2,nome:'FIM DE CURSO SIEMENS - 3SE5 232 0LE10'}, {qty:2,nome:'BUCHA DE TEFLON GRAFITADO 73 X 38,1 X 100 mm'}]},
+    {setor:'EXTRAÇÃO',nome:'Caixa coletora de massa FPA-30',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTOS UC 208 - EIXO Ø40 MM'}, {qty:2,nome:'MANCAL F213'}, {qty:2,nome:'ROLAMENTOS UC213 - EIXO Ø63,5 MM'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 3/8" - 1600 MM DE COMPRIMENTO'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 5/8" - 1600 MM DE COMPRIMENTO'}, {qty:2,nome:'MOTO-REDUTOR GD40 - RED. 1 X 86,67 - SAÍDA 19,61 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'MOTO-REDUTOR GD60 - RED. 1 X 216,79 - SAÍDA 5,30 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'CILINDRO PNEUMÁTICO PARKER P1E-G100MSO-0350'}, {qty:2,nome:'FIM DE CURSO SIEMENS - 3SE5 232 0LE10'}, {qty:2,nome:'BUCHA DE TEFLON GRAFITADO 73 X 38,1 X 100 mm'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca horizontal CCM Ø250 x 3900 mm',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC 208 - EIXO Ø40 MM'}, {qty:1,nome:'MOTO-REDUTOR GD40 - RED. 1X14,05 - SAÍDA 121 RPM - VAZADO + MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca horizontal CCM Ø250 x 4680 mm',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC 208 - EIXO Ø40 MM'}, {qty:1,nome:'MOTO-REDUTOR GD40 - RED. 1X14,05 - SAÍDA 121 RPM - VAZADO + MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca vertical Ø250 x 5000 mm',componentes:[{qty:3,nome:'CORREIAS B94'}, {qty:1,nome:'POLIA DE FERRO FUNDIDO Ø100 X 3 CANAL B'}, {qty:1,nome:'POLIA LISA DE AÇO CARBONO Ø625 mm'}, {qty:2,nome:'ROLAMENTO 6208 (40 X 80 X 18 MM)'}, {qty:1,nome:'MANCAL F211'}, {qty:1,nome:'ROLAMENTO UC211 - EIXO Ø2"'}, {qty:1,nome:'SELO MECANICO T01 1 3/4\'\' VITON'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Rosca vertical Ø250 x 5300 mm',componentes:[{qty:3,nome:'CORREIAS B94'}, {qty:1,nome:'POLIA DE FERRO FUNDIDO Ø100 X 3 CANAL B'}, {qty:1,nome:'POLIA LISA DE AÇO CARBONO Ø625 mm'}, {qty:2,nome:'ROLAMENTO 6208 (40 X 80 X 18 MM)'}, {qty:1,nome:'MANCAL F211'}, {qty:1,nome:'ROLAMENTO UC211 - EIXO Ø2"'}, {qty:1,nome:'SELO MECANICO T01 1 3/4\'\' VITON'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Esfarelador de massa prensada (2x)',componentes:[{qty:1,nome:'MANCAL F205'}, {qty:1,nome:'ROLAMENTO UC 205 EIXO Ø1”'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Transportador tipo pás Ø200 x 10175 mm',componentes:[{qty:4,nome:'MANCAL F208'}, {qty:4,nome:'ROLAMENTO UC208 - EIXO Ø40 MM'}, {qty:1,nome:'MOTO-REDUTOR GD30 RED. 1 X 35 - SAÍDA 48,57 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'EXTRAÇÃO',nome:'Transportador tipo pás Ø200 x 11500 mm',componentes:[{qty:4,nome:'MANCAL F208'}, {qty:4,nome:'ROLAMENTO UC208 - EIXO Ø40 MM'}, {qty:1,nome:'MOTO-REDUTOR GD30 RED. 1 X 35 - SAÍDA 48,57 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'ÁREA SECA',nome:'Dosador de massa prensada para forno pré aquecedor',componentes:[{qty:4,nome:'MANCAL F208'}, {qty:4,nome:'ROLAMENTO UC208 - EIXO Ø40 MM'}, {qty:1,nome:'ENGRENAGEM PARA CORRENTE ASA60 COM 50 DENTES'}, {qty:1,nome:'ENGRENAGEM PARA CORRENTE ASA60 COM 15 DENTES'}, {qty:1,nome:'CORRENTE ASA60 COM 1500 MM DE COMPRIMENTO'}, {qty:1,nome:'MOTO-REDUTOR GD40 RED. 1 X 46,67 - SAÍDA 36,43 RPM MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'ÁREA SECA',nome:'Dosador de massa prensada para forno pré aquecedor',componentes:[{qty:4,nome:'MANCAL F208'}, {qty:4,nome:'ROLAMENTO UC208 - EIXO Ø40 MM'}, {qty:1,nome:'ENGRENAGEM PARA CORRENTE ASA60 COM 50 DENTES'}, {qty:1,nome:'ENGRENAGEM PARA CORRENTE ASA60 COM 15 DENTES'}, {qty:1,nome:'CORRENTE ASA60 COM 1500 MM DE COMPRIMENTO'}, {qty:1,nome:'MOTO-REDUTOR GD40 RED. 1 X 46,67 - SAÍDA 36,43 RPM MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3'}]},
+    {setor:'ÁREA SECA',nome:'Forno pré aquecedor de massa',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 15 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 10 CV 4P 1740 RPM PREM IR3'}, {qty:2,nome:'MANCAL F215'}, {qty:2,nome:'ROLAMENTOS UC215 - EIXO Ø3"'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 3/8" 1800 MM DE COMP. 4 - CORREIA B90'}, {qty:1,nome:'POLIA FF Ø120 X 4 CANAL B'}, {qty:1,nome:'POLIA FF Ø500 X 4 CANAL B'}, {qty:4,nome:'CORREIAS B90'}]},
+    {setor:'ÁREA SECA',nome:'Forno pré aquecedor de massa',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 15 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 10 CV 4P 1740 RPM PREM IR3'}, {qty:2,nome:'MANCAL F215'}, {qty:2,nome:'ROLAMENTOS UC215 - EIXO Ø3"'}, {qty:1,nome:'GAXETA ENSEBADA GRAFITADA 3/8" 1800 MM DE COMP. 4 - CORREIA B90'}, {qty:1,nome:'POLIA FF Ø120 X 4 CANAL B'}, {qty:1,nome:'POLIA FF Ø500 X 4 CANAL B'}, {qty:4,nome:'CORREIAS B90'}]},
+    {setor:'ÁREA SECA',nome:'Forno contínuo a vapor',componentes:[{qty:1,nome:'REDUTOR BREVINI ET3250-MN1-110-619.5232.2742-B3 + MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM C. FLANGE FC NEMA E CAIXA ESQUERDA COD. 12218734 IR3'}, {qty:2,nome:'ROLAMENTO 23036EMKW33C3'}, {qty:2,nome:'BUCHA H 3036 1°'}, {qty:2,nome:'GAXETA GRAFITADA 1/2" 565 mm DE COMP.'}, {qty:2,nome:'GAXETA GRAFITADA 1/2" 574 mm DE COMP.'}, {qty:2,nome:'GAXETA GRAFITADA 1/2" 590 mm DE COMP.'}, {qty:2,nome:'BUCHA DE BORRACHA 80SH EXT.102 X INT.25,4 X 30MM DE ALTURA'}, {qty:2,nome:'FLEXIVEL INOX C FLANGE AC 150LBS 1 PONTA GIRAT E 1 PONTA FIXA 1-2 X 300MM'}, {qty:1,nome:'ACOPLAMENTO AF-46'}, {qty:1,nome:'BOMBA DE ENGRENAGEM DESL 2,5 11101002004'}, {qty:1,nome:'BOCAL DE ENCHIMENTO C FILTRO DE AR BE-761'}, {qty:1,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI - 246 KG-CM² - 330 MM COMP.'}, {qty:1,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI - 246 KG-CM² - 360 MM COMP.'}, {qty:1,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI 246 KG-CM² - 470 MM COMP.'}, {qty:2,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 3-8 - 4000 PSI - 280KG-CM² - 600 MM COMP.'}, {qty:1,nome:'VALVULA TIPO AGULHA BRONZE 3000 LBS 1-2\'\''}, {qty:1,nome:'FILTRO SUCCAO 3-4\'\' NPT 5 GPM 20LPM FTS020A'}, {qty:1,nome:'PLACA MAGNETICA INOX 304 180X180X36 + 15MM DE ABAS ACO 1010-1020 IMAS DE FERRITE'}, {qty:1,nome:'SELO MECÂNICO FCV-A1 2.1/2” UNIPREST'}, {qty:1,nome:'RETENTOR SABO 07461 BRF 117,4 X 142,9 X 12,5MM'}, {qty:2,nome:'GAXETA VEDABRAS 0019421 TIPO U (63.50 X 76.20 X 9.53)'}, {qty:2,nome:'ANEL RASPADOR VEDABRAS 0050106 PD (63.50 X 76.20 X 6.35) AS9'}, {qty:1,nome:'CHAVE FIM DE CURSO PLAST - ZV1H 236 11ZP 18843102 (FORNO)'}, {qty:1,nome:'ANEL ORING 0010852 VI VED (106.50 X 3.00)'}]},
+    {setor:'ÁREA SECA',nome:'Forno contínuo a vapor',componentes:[{qty:1,nome:'REDUTOR BREVINI ET3250-MN1-110-619.5232.2742-B3 + MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM C. FLANGE FC NEMA E CAIXA ESQUERDA COD. 12218734 IR3'}, {qty:2,nome:'ROLAMENTO 23036EMKW33C3'}, {qty:2,nome:'BUCHA H 3036 1°'}, {qty:2,nome:'GAXETA GRAFITADA 1/2" 565 mm DE COMP.'}, {qty:2,nome:'GAXETA GRAFITADA 1/2" 574 mm DE COMP.'}, {qty:2,nome:'GAXETA GRAFITADA 1/2" 590 mm DE COMP.'}, {qty:2,nome:'BUCHA DE BORRACHA 80SH EXT.102 X INT.25,4 X 30MM DE ALTURA'}, {qty:2,nome:'FLEXIVEL INOX C FLANGE AC 150LBS 1 PONTA GIRAT E 1 PONTA FIXA 1-2 X 300MM'}, {qty:1,nome:'ACOPLAMENTO AF-46'}, {qty:1,nome:'BOMBA DE ENGRENAGEM DESL 2,5 11101002004'}, {qty:1,nome:'BOCAL DE ENCHIMENTO C FILTRO DE AR BE-761'}, {qty:1,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI - 246 KG-CM² - 330 MM COMP.'}, {qty:1,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI - 246 KG-CM² - 360 MM COMP.'}, {qty:1,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI 246 KG-CM² - 470 MM COMP.'}, {qty:2,nome:'MANGUEIRA FLEXIVEL HIDRAULICA 3-8 - 4000 PSI - 280KG-CM² - 600 MM COMP.'}, {qty:1,nome:'VALVULA TIPO AGULHA BRONZE 3000 LBS 1-2\'\''}, {qty:1,nome:'FILTRO SUCCAO 3-4\'\' NPT 5 GPM 20LPM FTS020A'}, {qty:1,nome:'PLACA MAGNETICA INOX 304 180X180X36 + 15MM DE ABAS ACO 1010-1020 IMAS DE FERRITE'}, {qty:1,nome:'SELO MECÂNICO FCV-A1 2.1/2” UNIPREST'}, {qty:1,nome:'RETENTOR SABO 07461 BRF 117,4 X 142,9 X 12,5MM'}, {qty:2,nome:'GAXETA VEDABRAS 0019421 TIPO U (63.50 X 76.20 X 9.53)'}, {qty:2,nome:'ANEL RASPADOR VEDABRAS 0050106 PD (63.50 X 76.20 X 6.35) AS9'}, {qty:1,nome:'CHAVE FIM DE CURSO PLAST - ZV1H 236 11ZP 18843102 (FORNO)'}, {qty:1,nome:'ANEL ORING 0010852 VI VED (106.50 X 3.00)'}]},
+    {setor:'ÁREA SECA',nome:'Sistema de retorno de condensado',componentes:[{qty:2,nome:'BOMBA THEBE P15-2N - MOTOR TRIF 220-380 IP55 5 CV 2P 3540 RPM IR3'}, {qty:3,nome:'JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 1\'\''}, {qty:19,nome:'JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 1 1-2\'\''}, {qty:1,nome:'JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 4\'\''}, {qty:1,nome:'MANOMETRO VERTICAL SEMI INOX 0 A 21 KG 300PSI 1-2\'\' Ø100MM'}, {qty:2,nome:'VALVULA DE RETENCAO INOX 316 TIPO WAFER  1 1-2\'\''}, {qty:5,nome:'VALVULA AC ESF INOX TRIP PR 1 1-2\'\' FLANGE 150LBS TF MGA'}, {qty:2,nome:'SIFÃO TROMBETA 1-2\'\''}, {qty:2,nome:'FILTRO Y BRONZE 1 1-2\'\'\' 150LBS C. ROSCA'}, {qty:1,nome:'PRESSOSTATO ESC. 22 A 300BAR BORNES 1NANF DIF.REG.2NIV XMLB300D2S11'}, {qty:2,nome:'FLEXIVEL INOX 1 1-2\'\' X 200MM 1PONTA C. ROSCA 1 1-2\'\' BSP 11 F - UMA PONTA FLANGE GIR 1 1-2\'\' 150LBS'}, {qty:1,nome:'VALVULA AC ESF INOX TRIP PR 1\'\' FLANGE 150LBS TF'}, {qty:3,nome:'VALVULA AC ESF INOX TRIP PR 1-2\'\' ROSCA 300LBS'}, {qty:1,nome:'BUJÃO DE NÍVEL PARA BOBMA DE CONDENSDO UNIPREST'}]},
+    {setor:'ÁREA SECA',nome:'Sistema de retorno de condensado',componentes:[{qty:2,nome:'BOMBA THEBE P15-2N - MOTOR TRIF 220-380 IP55 5 CV 2P 3540 RPM IR3'}, {qty:3,nome:'JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 1\'\''}, {qty:19,nome:'JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 1 1-2\'\''}, {qty:1,nome:'JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 4\'\''}, {qty:1,nome:'MANOMETRO VERTICAL SEMI INOX 0 A 21 KG 300PSI 1-2\'\' Ø100MM'}, {qty:2,nome:'VALVULA DE RETENCAO INOX 316 TIPO WAFER  1 1-2\'\''}, {qty:5,nome:'VALVULA AC ESF INOX TRIP PR 1 1-2\'\' FLANGE 150LBS TF MGA'}, {qty:2,nome:'SIFÃO TROMBETA 1-2\'\''}, {qty:2,nome:'FILTRO Y BRONZE 1 1-2\'\'\' 150LBS C. ROSCA'}, {qty:1,nome:'PRESSOSTATO ESC. 22 A 300BAR BORNES 1NANF DIF.REG.2NIV XMLB300D2S11'}, {qty:2,nome:'FLEXIVEL INOX 1 1-2\'\' X 200MM 1PONTA C. ROSCA 1 1-2\'\' BSP 11 F - UMA PONTA FLANGE GIR 1 1-2\'\' 150LBS'}, {qty:1,nome:'VALVULA AC ESF INOX TRIP PR 1\'\' FLANGE 150LBS TF'}, {qty:3,nome:'VALVULA AC ESF INOX TRIP PR 1-2\'\' ROSCA 300LBS'}, {qty:1,nome:'BUJÃO DE NÍVEL PARA BOBMA DE CONDENSDO UNIPREST'}]},
+    {setor:'ÁREA SECA',nome:'Entrada de vapor para forno contínuo a vapor',componentes:[{qty:3,nome:'JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 2\'\''}, {qty:10,nome:'JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 2 1-2\'\''}, {qty:6,nome:'JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 3\'\''}, {qty:3,nome:'MANOMETRO VERTICAL SEMI INOX 0 A 21 KG 300PSI 1-2\'\' Ø100MM'}, {qty:1,nome:'VALVULA AC ESF INOX TRIP PR 3 FLANGE 150LBS TF MGA'}, {qty:1,nome:'VALVULA DE ALIVIO BRONZE DECA 2\'\' S. CABO'}, {qty:1,nome:'FILTRO Y ACO CARBONO 3\'\' FLANGE 150 LBS'}, {qty:3,nome:'SIFÃO TROMBETA 1-2\'\''}, {qty:1,nome:'FLEXIVEL INOX C. FLANGE AC 150LBS 1 PONTA GIRAT E 1 PONTA FIXA 2\'\' X 200MM'}, {qty:2,nome:'FLEXIVEL INOX C. FLANGE AC 150LBS 2.1-2 X 500MM'}, {qty:1,nome:'VALVULA AC ESF INOX TRIP PP 2 FLANGE 150LBS TF MGA'}, {qty:2,nome:'VALVULA AC ESF INOX TRIP PP 2.1-2 FLANGE 150LBS TF MGA'}, {qty:1,nome:'VALVULA REDUTORA DE VAPOR 3POL - A1'}]},
+    {setor:'ÁREA SECA',nome:'Entrada de vapor para forno contínuo a vapor',componentes:[{qty:3,nome:'JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 2\'\''}, {qty:10,nome:'JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 2 1-2\'\''}, {qty:6,nome:'JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 3\'\''}, {qty:3,nome:'MANOMETRO VERTICAL SEMI INOX 0 A 21 KG 300PSI 1-2\'\' Ø100MM'}, {qty:1,nome:'VALVULA AC ESF INOX TRIP PR 3 FLANGE 150LBS TF MGA'}, {qty:1,nome:'VALVULA DE ALIVIO BRONZE DECA 2\'\' S. CABO'}, {qty:1,nome:'FILTRO Y ACO CARBONO 3\'\' FLANGE 150 LBS'}, {qty:3,nome:'SIFÃO TROMBETA 1-2\'\''}, {qty:1,nome:'FLEXIVEL INOX C. FLANGE AC 150LBS 1 PONTA GIRAT E 1 PONTA FIXA 2\'\' X 200MM'}, {qty:2,nome:'FLEXIVEL INOX C. FLANGE AC 150LBS 2.1-2 X 500MM'}, {qty:1,nome:'VALVULA AC ESF INOX TRIP PP 2 FLANGE 150LBS TF MGA'}, {qty:2,nome:'VALVULA AC ESF INOX TRIP PP 2.1-2 FLANGE 150LBS TF MGA'}, {qty:1,nome:'VALVULA REDUTORA DE VAPOR 3POL - A1'}]},
+    {setor:'ÁREA SECA',nome:'Sistema de aspiração para forno contínuo a vapor',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'RETENTOR SABÓ Nº01046 (40 X 56 X 10)'}, {qty:6,nome:'MOLA INOX ØEXT.25,4 X FIO Ø4 X PASSE 7,5 X 30 MM DE COMP. TOPOS PLANOS'}]},
+    {setor:'ÁREA SECA',nome:'Sistema de aspiração para forno contínuo a vapor',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'RETENTOR SABÓ Nº01046 (40 X 56 X 10)'}, {qty:6,nome:'MOLA INOX ØEXT.25,4 X FIO Ø4 X PASSE 7,5 X 30 MM DE COMP. TOPOS PLANOS'}]},
+    {setor:'ÁREA SECA',nome:'Rosca inox Ø200 x 2340 mm',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC208 EIXO Ø1.1/2”'}, {qty:1,nome:'JUNTA RETANGULAR 205 X 185 X 100 mm'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA FF Ø80 X 2 CANAL B'}, {qty:1,nome:'POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B'}, {qty:2,nome:'CORREIAS B-64'}]},
+    {setor:'ÁREA SECA',nome:'Rosca inox Ø200 x 2340 mm',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC208 EIXO Ø1.1/2”'}, {qty:1,nome:'JUNTA RETANGULAR 205 X 185 X 100 mm'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA FF Ø80 X 2 CANAL B'}, {qty:1,nome:'POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B'}, {qty:2,nome:'CORREIAS B-64'}]},
+    {setor:'ÁREA SECA',nome:'Peneira de carolo',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA DE FERRO FUNDIDO Ø120 X 1 CANAL A'}, {qty:1,nome:'POLIA DE FERRO FUNDIDO Ø350 X 1 CANAL A'}, {qty:1,nome:'CORREIA A62'}, {qty:2,nome:'MANCAL P20'}, {qty:2,nome:'ROLAMENTO UC208 - EIXO Ø40 MM'}, {qty:1,nome:'ROLAMENTO 6216 - 80 X 140 X 26 MM'}]},
+    {setor:'ÁREA SECA',nome:'Peneira de carolo',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA DE FERRO FUNDIDO Ø120 X 1 CANAL A'}, {qty:1,nome:'POLIA DE FERRO FUNDIDO Ø350 X 1 CANAL A'}, {qty:1,nome:'CORREIA A62'}, {qty:2,nome:'MANCAL P20'}, {qty:2,nome:'ROLAMENTO UC208 - EIXO Ø40 MM'}, {qty:1,nome:'ROLAMENTO 6216 - 80 X 140 X 26 MM'}]},
+    {setor:'ÁREA SECA',nome:'Moinho triturador de carolo com transporte pneumático',componentes:[{qty:1,nome:'01 - MOTOR TRIF 220-380 IP55 7,5 CV 2P 3540 RPM FF PREM IR3'}, {qty:1,nome:'01 - ACOPLAMENTO AP-35'}, {qty:2,nome:'02 - CAIXA PARA ROLAMENTO SN511'}, {qty:2,nome:'02 - ROLAMENTO 22211'}, {qty:2,nome:'02 BUCHA H311 - EIXO Ø50 MM'}, {qty:20,nome:'20 - MARTELO EM CHAPA 3/16" 58 X 118 MM'}]},
+    {setor:'ÁREA SECA',nome:'Moinho triturador de carolo com transporte pneumático',componentes:[{qty:1,nome:'01 - MOTOR TRIF 220-380 IP55 7,5 CV 2P 3540 RPM FF PREM IR3'}, {qty:1,nome:'01 - ACOPLAMENTO AP-35'}, {qty:2,nome:'02 - CAIXA PARA ROLAMENTO SN511'}, {qty:2,nome:'02 - ROLAMENTO 22211'}, {qty:2,nome:'02 BUCHA H311 - EIXO Ø50 MM'}, {qty:20,nome:'20 - MARTELO EM CHAPA 3/16" 58 X 118 MM'}]},
+    {setor:'ÁREA SECA',nome:'Rosca inox Ø200 x 3220 mm',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC208 EIXO Ø1.1/2”'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA FF Ø80 X 2 CANAL B'}, {qty:1,nome:'POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B'}, {qty:2,nome:'CORREIAS B-64'}]},
+    {setor:'ÁREA SECA',nome:'Rosca inox Ø200 x 3220 mm',componentes:[{qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC208 EIXO Ø1.1/2”'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA FF Ø80 X 2 CANAL B'}, {qty:1,nome:'POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B'}, {qty:2,nome:'CORREIAS B-64'}]},
+    {setor:'ÁREA SECA',nome:'Resfriador de farinha',componentes:[{qty:2,nome:'PLACA MAGNETICA INOX 304 100X180X36 + 15MM DE ABAS ACO 1010-1020 IMÃS DE FERRITE'}, {qty:2,nome:'GAXETA ENCEBADA 3-8\'\' - 407 mm DE COMP'}, {qty:2,nome:'GAXETA ENCEBADA 3-8\'\' - 439 mm DE COMP'}, {qty:1,nome:'RETENTOR SABO 05511 (35 X 50 X 8 BRG) BI FPM'}, {qty:1,nome:'CORRENTE ASA 160 AÇO CARBONO - 5300 mm DE COMP.'}, {qty:2,nome:'BORRACHA ESPONJOSA 7 X 7 mm - 790 mm DE COMP. – 5020000140'}, {qty:4,nome:'CORREIA A 65 DENTADA'}, {qty:2,nome:'ABRACADEIRA ZINC ROSCA SEM FIM 102-121'}, {qty:1,nome:'MANGUEIRA AGUA MAA 150 4.1-2\'\'  X 4\'\' 350 mm DE COMP.'}, {qty:2,nome:'MOTOR TRIF 220-380 IP55 2 CV 6P 1140 RPM FLANGE PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 7,5 CV 2P 3540 RPM S. PES E C. FLANGE FF PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM S. PES C. FLANGE FF PREM IR3'}, {qty:1,nome:'REDUTOR BREVINI ED2030-MR1-35,5-00-611.0460.0690-B3'}, {qty:2,nome:'POLIA FF TIPO S Ø80 X 2 CANAL A'}, {qty:2,nome:'POLIA FF TIPO S Ø400 X 2 CANAL A'}, {qty:4,nome:'ROLAMENTO 6024 ZZ'}, {qty:2,nome:'ROLAMENTO 6052'}, {qty:2,nome:'TRAVA ELASTICA AC E 120MM'}, {qty:2,nome:'TRAVA ELASTICA AC E 260MM'}, {qty:1,nome:'VALVULA BORBOLETA INOX 304 OD 4\'\''}]},
+    {setor:'ÁREA SECA',nome:'Resfriador de farinha',componentes:[{qty:2,nome:'PLACA MAGNETICA INOX 304 100X180X36 + 15MM DE ABAS ACO 1010-1020 IMÃS DE FERRITE'}, {qty:2,nome:'GAXETA ENCEBADA 3-8\'\' - 407 mm DE COMP'}, {qty:2,nome:'GAXETA ENCEBADA 3-8\'\' - 439 mm DE COMP'}, {qty:1,nome:'RETENTOR SABO 05511 (35 X 50 X 8 BRG) BI FPM'}, {qty:1,nome:'CORRENTE ASA 160 AÇO CARBONO - 5300 mm DE COMP.'}, {qty:2,nome:'BORRACHA ESPONJOSA 7 X 7 mm - 790 mm DE COMP. – 5020000140'}, {qty:4,nome:'CORREIA A 65 DENTADA'}, {qty:2,nome:'ABRACADEIRA ZINC ROSCA SEM FIM 102-121'}, {qty:1,nome:'MANGUEIRA AGUA MAA 150 4.1-2\'\'  X 4\'\' 350 mm DE COMP.'}, {qty:2,nome:'MOTOR TRIF 220-380 IP55 2 CV 6P 1140 RPM FLANGE PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 7,5 CV 2P 3540 RPM S. PES E C. FLANGE FF PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM S. PES C. FLANGE FF PREM IR3'}, {qty:1,nome:'REDUTOR BREVINI ED2030-MR1-35,5-00-611.0460.0690-B3'}, {qty:2,nome:'POLIA FF TIPO S Ø80 X 2 CANAL A'}, {qty:2,nome:'POLIA FF TIPO S Ø400 X 2 CANAL A'}, {qty:4,nome:'ROLAMENTO 6024 ZZ'}, {qty:2,nome:'ROLAMENTO 6052'}, {qty:2,nome:'TRAVA ELASTICA AC E 120MM'}, {qty:2,nome:'TRAVA ELASTICA AC E 260MM'}, {qty:1,nome:'VALVULA BORBOLETA INOX 304 OD 4\'\''}]},
+    {setor:'ÁREA SECA',nome:'Conjunto de transporte pneumático com compressor tipo roots',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 10 CV 4P 1740 RPM'}, {qty:1,nome:'SOPRADOR TIPO ROOTS R100 (RUSSO ROOTS)'}, {qty:1,nome:'SILENCIOSO COM MIOLO MB 1113 TURBO'}, {qty:2,nome:'MANCAL FC 208'}, {qty:2,nome:'ROLAMENTO UC 208 EIXO 40MM'}, {qty:1,nome:'MOTO REDUTOR GD30 1X74,12 - SAIDA 22,9 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 1,5 CV 4P 1740 RPM'}, {qty:1,nome:'POLIA FF TIPO R 200 X 3 CANAL B'}, {qty:1,nome:'POLIA FF TIPO R 150 X 3 CANAL B'}, {qty:3,nome:'CORREIA B58'}, {qty:8,nome:'MANTA FILTRANTE P-500 S. BRITE 1MT DE LARG - 245 X 245 mm = 0,06 M²'}]},
+    {setor:'ÁREA SECA',nome:'Conjunto de transporte pneumático com compressor tipo roots',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 10 CV 4P 1740 RPM'}, {qty:1,nome:'SOPRADOR TIPO ROOTS R100 (RUSSO ROOTS)'}, {qty:1,nome:'SILENCIOSO COM MIOLO MB 1113 TURBO'}, {qty:2,nome:'MANCAL FC 208'}, {qty:2,nome:'ROLAMENTO UC 208 EIXO 40MM'}, {qty:1,nome:'MOTO REDUTOR GD30 1X74,12 - SAIDA 22,9 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 1,5 CV 4P 1740 RPM'}, {qty:1,nome:'POLIA FF TIPO R 200 X 3 CANAL B'}, {qty:1,nome:'POLIA FF TIPO R 150 X 3 CANAL B'}, {qty:3,nome:'CORREIA B58'}, {qty:8,nome:'MANTA FILTRANTE P-500 S. BRITE 1MT DE LARG - 245 X 245 mm = 0,06 M²'}]},
+    {setor:'ÁREA SECA',nome:'Válvula rotativa',componentes:[{qty:1,nome:'MOTO REDUTOR GD20 RED. 1 X 170,50 - SAÍDA 6,7 RPM MOTOR TRIF 220-380 IP55 0,25 CV 4P 1740 RPM'}, {qty:2,nome:'MANCAL FC208'}, {qty:2,nome:'ROLAMENTO UC 208 EIXO Ø40 mm'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø220 x 4500 mm',componentes:[{qty:1,nome:'GD 30 RED. 1 X 35 - SAÍDA 48,66 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM C. PES E S. FLANGE B3E'}, {qty:2,nome:'MANCAL F209'}, {qty:2,nome:'ROLAMENTO UC209 – EIXO Ø 1.3/4”'}, {qty:4,nome:'JUNTA 120 X 120 X 150 mm'}]},
+    {setor:'ENSAQUE 02',nome:'Peneira de classificação de farinha',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM'}, {qty:1,nome:'CORREIA B49'}, {qty:1,nome:'TRAVA ELÁSTICA E-60'}, {qty:1,nome:'ROLAMENTO 6212'}, {qty:2,nome:'GRAMPO TENSOR D347'}, {qty:4,nome:'MOLA DE FIBRA 106 X 410 mm'}, {qty:2,nome:'RETENTOR SABÓ Nº 01842 BRG (60 X 82 X 12)'}, {qty:2,nome:'MANCAL P208'}, {qty:2,nome:'ROLAMENTO UC 208'}]},
+    {setor:'ENSAQUE 02',nome:'Peneira de classificação de farinha',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM'}, {qty:1,nome:'CORREIA B49'}, {qty:1,nome:'TRAVA ELÁSTICA E-60'}, {qty:1,nome:'ROLAMENTO 6212'}, {qty:2,nome:'GRAMPO TENSOR D347'}, {qty:4,nome:'MOLA DE FIBRA 106 X 410 mm'}, {qty:2,nome:'RETENTOR SABÓ Nº 01842 BRG (60 X 82 X 12)'}, {qty:2,nome:'MANCAL P208'}, {qty:2,nome:'ROLAMENTO UC 208'}]},
+    {setor:'ENSAQUE 02',nome:'Peneira de classificação de farinha',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM'}, {qty:1,nome:'CORREIA B49'}, {qty:1,nome:'TRAVA ELÁSTICA E-60'}, {qty:1,nome:'ROLAMENTO 6212'}, {qty:2,nome:'GRAMPO TENSOR D347'}, {qty:4,nome:'MOLA DE FIBRA 106 X 410 mm'}, {qty:2,nome:'RETENTOR SABÓ Nº 01842 BRG (60 X 82 X 12)'}, {qty:2,nome:'MANCAL P208'}, {qty:2,nome:'ROLAMENTO UC 208'}]},
+    {setor:'ENSAQUE 02',nome:'Peneira de classificação de farinha',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM'}, {qty:1,nome:'CORREIA B49'}, {qty:1,nome:'TRAVA ELÁSTICA E-60'}, {qty:1,nome:'ROLAMENTO 6212'}, {qty:2,nome:'GRAMPO TENSOR D347'}, {qty:4,nome:'MOLA DE FIBRA 106 X 410 mm'}, {qty:2,nome:'RETENTOR SABÓ Nº 01842 BRG (60 X 82 X 12)'}, {qty:2,nome:'MANCAL P208'}, {qty:2,nome:'ROLAMENTO UC 208'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø200 x 3122 mm',componentes:[{qty:1,nome:'GD 30 RED. 1 X 68,89 - SAÍDA 24,70 RPM + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM C. PES E S. FLANGE B3E'}, {qty:2,nome:'MANCAL F209'}, {qty:2,nome:'ROLAMENTO UC209 – EIXO Ø 1.3/4”'}, {qty:4,nome:'JUNTA 120 X 120 X 150 mm'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø200 x 2014 mm',componentes:[{qty:1,nome:'GD 30 RED. 1 X 7,55 - SAÍDA 225,2 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM C. PES E S. FLANGE B3E'}, {qty:2,nome:'MANCAL F209'}, {qty:2,nome:'ROLAMENTO UC209 – EIXO Ø 1.3/4”'}]},
+    {setor:'ENSAQUE 02',nome:'Moinho padronizador de farinha',componentes:[{qty:1,nome:'MOTOR TRIF 220-380 IP55 40 CV 2P 3540 RPM PREM IR3'}, {qty:1,nome:'MOTO REDUTOR GD30 1X35,00 - SAIDA 48,6 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3'}, {qty:5,nome:'CORREIA B-86 DENTADA'}, {qty:1,nome:'POLIA DE AÇO CARBONO Ø180 X 5 CANAL B'}, {qty:1,nome:'POLIA DE AÇO CARBONO Ø250 X 5 CANAL B'}, {qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTOS UC 208 – EIXO Ø40 mm'}, {qty:2,nome:'MANCAL SN 515'}, {qty:2,nome:'ROLAMENTO 2215 C3K'}, {qty:2,nome:'BUCHA HE 315'}, {qty:4,nome:'ANEL DE BLOQUEIO ROLAMENTO 2215'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø180 x 3088 mm',componentes:[{qty:2,nome:'MANCAL F207'}, {qty:2,nome:'ROLAMENTO UC207 EIXO Ø1.1/4”'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM FF PREM IR3'}, {qty:1,nome:'POLIA FF Ø80 X 2 CANAL B'}, {qty:1,nome:'POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B'}, {qty:2,nome:'CORREIAS B-60'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø220 x 3690 mm',componentes:[{qty:1,nome:'GD 30 RED. 1 X 68,89 - SAÍDA 24,70 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM'}, {qty:2,nome:'MANCAL F211'}, {qty:2,nome:'ROLAMENTO UC211 – EIXO Ø 2”'}, {qty:4,nome:'JUNTA 120 X 120 X 150 mm'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø250 x 4680 mm',componentes:[{qty:1,nome:'GD 30 RED. 1 X 7,55 - SAÍDA 225,2 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM'}, {qty:2,nome:'MANCAL F211'}, {qty:2,nome:'ROLAMENTO UC211 – EIXO Ø 2”'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø250 x 3270 mm',componentes:[{qty:1,nome:'GD 30 RED. 1 X 7,55 - SAÍDA 225,2 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM'}, {qty:2,nome:'MANCAL F211'}, {qty:2,nome:'ROLAMENTO UC211 – EIXO Ø 2”'}]},
+    {setor:'ENSAQUE 02',nome:'Sistema de envase em big bag',componentes:[{qty:1,nome:'BALANÇA TOLEDO MODELO 2198'}, {qty:4,nome:'CELULA DE CARGA BALAÇA TOLEDO - MODELO 2198'}, {qty:1,nome:'CILINDRO PNEUMÁTICO 50 X 100 mm'}, {qty:1,nome:'DETECTOR DE METAIS - PERFORDMV 6”'}, {qty:4,nome:'ROLAMENTOS 6204'}, {qty:1,nome:'VALVULA BORBOLETA DISCO INOX 304 COM ATUADOR PNEUMÁTICO'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø250 x 4300 mm',componentes:[{qty:1,nome:'MOTO REDUTOR VERTIMAX WCG20 V04 3 RED. 1X71,24 BMA SAÍDA 24,57 RPM + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM PREM IR3'}, {qty:2,nome:'MANCAL F208'}, {qty:2,nome:'ROLAMENTO UC208 – EIXO Ø 40 mm'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø250 x 5900 mm',componentes:[{qty:1,nome:'MOTO REDUTOR VERTIMAX WCG20 V06 2 RED. 1X7,32 BMA - SAÍDA 237,02 RPM + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3'}, {qty:2,nome:'MANCAL F211'}, {qty:2,nome:'ROLAMENTO UC211 – EIXO Ø 2”'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø250 x 2340 mm',componentes:[{qty:1,nome:'MOTO REDUTOR VERTIMAX WCG20 V06 2 RED. 1X7,32 BMA - SAÍDA 237,02 RPM + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3'}, {qty:2,nome:'MANCAL F211'}, {qty:2,nome:'ROLAMENTO UC211 – EIXO Ø 2”'}]},
+    {setor:'ENSAQUE 02',nome:'Sistema de envase em Big Bag',componentes:[{qty:4,nome:'CABO DE ACO GALVANIZADO 3-16\'\' - 1200 mm DE COMP.'}, {qty:2,nome:'CILINDRO PNEUMATICO FESTO DSBC 50X100 PPSA N3'}, {qty:1,nome:'MANGA FILTRANTE INT132 X 1050MMDE COMP TIPO TAMPÃO COM BAINHA, CORDA FIXA E ALC'}, {qty:4,nome:'ESTICADOR P CABO DE ACO 3-16\'\' GANCHO-OLHAL LEVE'}, {qty:8,nome:'GRAMPO LEVE (CLIPS) - DIN 741 GALVANIZADO - PARA CABO DE AÇO 3-16\'\''}, {qty:1,nome:'VALVULA BORBOLETA FOFO DISCO INOX 8\'\' C. ATUADOR PNEUMATICO'}, {qty:1,nome:'ABRAÇADEIRA ZINC TIPO MG 111 – 123'}, {qty:1,nome:'BALANÇA TOLEDO MODELO 2198'}, {qty:4,nome:'CELULA DE CARGA BALAÇA TOLEDO - MODELO 2198'}, {qty:4,nome:'ROLAMENTO 6204'}]},
+    {setor:'ENSAQUE 02',nome:'Rosca inox Ø250 x 3550 mm',componentes:[{qty:1,nome:'MOTO REDUTOR VERTIMAX WCG20 V06 2 RED. 1X7,32 BMA - SAÍDA 237,02 RPM + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3'}, {qty:2,nome:'MANCAL F211'}, {qty:2,nome:'ROLAMENTO UC211 – EIXO Ø 2”'}]},
+    {setor:'ENSAQUE 02',nome:'Ensacadeira para envase valvulado',componentes:[{qty:1,nome:'MOTO REDUTOR GD 20 - RED. 1 X 64,21 - SAIDA 26,5 RPM - VAZADO + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM PREM IR3'}, {qty:1,nome:'MOTOR TRIF 220-380 IP55 4 CV 6P 1140 RPM PREM IR3'}, {qty:1,nome:'ACOPLAMENTO GMAX 90'}, {qty:2,nome:'MANCAL P207'}, {qty:2,nome:'ROLAMENTO UC 207 – EIXO Ø1.1/4”'}, {qty:2,nome:'MANCAL FC 208'}, {qty:2,nome:'ROLAMENTO UC208 – EIXO Ø40 mm'}]},
   ],
 
   preventiva: [
-    {equip:'Rosca transportadora (Descarga)',comp:'Mancal F 213',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora (Descarga)',comp:'Rolamento UC 213 Eixo 2.1-2"',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora (Descarga)',comp:'Correias B88 Dentada',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora (Descarga)',comp:'Motor TRIF 5 CV 6P',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora (Descarga)',comp:'Selo Mecânico T01 2.1-4" Viton',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora de mandioca',comp:'Mancais F 215',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora de mandioca',comp:'Rolamentos UC 215 Eixo 3"',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
-    {equip:'Rosca transportadora de mandioca',comp:'Moto Redutor GD50 – 5 CV',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
-    {equip:'Pré Lavador de Mandioca',comp:'Mancais SN 522 MDS',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
-    {equip:'Pré Lavador de Mandioca',comp:'Rolamentos 22222 KC3',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
-    {equip:'Lavador de Mandioca',comp:'Mancais SN 522 MDS',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
-    {equip:'Lavador de Mandioca',comp:'Rolamentos 22222 KC3',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
-    {equip:'Peneira vibratória',comp:'Rolamento LA 22211 EAK (3x)',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
-    {equip:'Peneira vibratória',comp:'Bucha HE 311 (3x)',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
-    {equip:'Cevadeira rotor Ø800 mm',comp:'Rolo da cevadeira + serrinhas',trim:'2º',planejada:'2025-05-01',realizada:null,exec:null},
-    {equip:'Filtro prensa automático',comp:'Válvulas de ar dos inversores',trim:'2º',planejada:'2025-05-01',realizada:null,exec:null},
-    {equip:'Forno contínuo a vapor',comp:'Sensor de temperatura (flange)',trim:'2º',planejada:'2025-05-01',realizada:null,exec:null},
-    {equip:'Forno contínuo a vapor',comp:'Registros e juntas de vapor',trim:'3º',planejada:'2025-08-01',realizada:null,exec:null},
+    {equip:'Rosca transportadora de mandi',comp:'01 - MANCAL F 213',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'01 - ROLAMENTO UC 213 EIXO 2.1-2\'\'',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'03 – CORREIAS B88 DENTADA',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'01 - MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'01 - SELO MECANICO T01 2.1-4\'\' VITON',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'01 - ROLAMENTO 1210 SC3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'01 - POLIA FF TIPO R Ø600 mm X 3 CANAL B',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandi',comp:'01 - POLIA FF TIPO S Ø100  mm X 3 CANAL',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca Transportadora de Mandioc',comp:'02 - MANCAIS F 215',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca Transportadora de Mandioc',comp:'02 - ROLAMENTOS UC 215 EIXO 3\'\'',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca Transportadora de Mandioc',comp:'01 - MOTO REDUTOR GD50 1 X 31,25 - SAÍDA 55,68 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Pré Lavador de Mandioca ',comp:'02 - MANCAIS SN 522 MDS',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Pré Lavador de Mandioca ',comp:'02 - ROLAMENTOS 22222 KC3',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Pré Lavador de Mandioca ',comp:'02 - BUCHAS H 322 1° LINHA',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Pré Lavador de Mandioca ',comp:'01 - REDUTOR PLANETARIO GEREMIA PG2503 RED 1X110 MC 4702.011.047 B5 16RPM SAÍDA + MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca Transportadora',comp:'02 - MANCAIS F 215',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca Transportadora',comp:'02 - ROLAMENTOS UC 215 EIXO 3\'\'',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca Transportadora',comp:'01 - MOTO REDUTOR GD50 1 X 31,25 - SAÍDA 55,68 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Lavador de Mandioca ',comp:'02 - MANCAIS SN 522 MDS',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Lavador de Mandioca ',comp:'02 - ROLAMENTOS 22222 KC3',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Lavador de Mandioca ',comp:'02 - BUCHAS H 322 1° LINHA',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Lavador de Mandioca ',comp:'01 - REDUTOR BREVINI ET3250-MN1-110-619.5232.2742-B3 + MOTOR TRIF 220-380 IP55 25 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - MANCAL F 211',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - ROLAMENTO UC 211 EIXO DE 2\'\'',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - ROLAMENTO 1208 SC3',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'03 - CORREIAS B 75 DENTADA',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - SELO MECANICO T01 1.3-4\'\' VITON',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - BOMBA CENTRIFUGA - MBL 7,5 CV 2P',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - POLIA FF Ø500 X 3 CANAL B',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Peneira de separação de cas',comp:'01 - POLIA FF Ø110 X 3 CANAL B',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Esteira de inspeção de raízes',comp:'04 – MANCAIS F208',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Esteira de inspeção de raízes',comp:'04 – ROLAMENTOS UC208 EIXO Ø40 mm',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Esteira de inspeção de raízes',comp:'01 – MOTO-REDUTOR GD 40 RED. 1 X 52,73 - SAÍDA 32,24 RPM - VAZADO + MOTOR WEG W22 IP55 - 4 POLOS 1740 RPM',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Esteira de inspeção de raízes',comp:'01 - CORREIA TRANSP PVC DUBLADA BRANCA ATOXICA 23 X 3 LONAS #5,5MM ESP.',trim:'4º',planejada:'2024-10-14',realizada:'2024-10-14',exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'02 - MANCAIS SN 515 MDS',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'02 - ROLAMENTOS 22215 KC3',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'02 - BUCHAS HE 315',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'01 - MOTOR W22 PREMIUM IR3 TRIF 220-380 IP55 10 CV 4P 1740 RPM',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'04 - CORREIAS B72',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'01 – POLIA DE AÇO CARBONO Ø400 mm X 4 CANAL B',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Picador de mandioca',comp:'01 - POLIA FF Ø100 X 4 CANAL B',trim:'4º',planejada:'2024-10-21',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - MANCAL F 213',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - ROLAMENTO UC 213 EIXO 2.1-2\'\'',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'03 – CORREIAS B88 DENTADA',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - SELO MECANICO T01 2.1-4\'\' VITON',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - ROLAMENTO 1210 SC3',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - POLIA FF TIPO R Ø600 mm X 3 CANAL B',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mand',comp:'01 - POLIA FF TIPO S Ø100  mm X 3 CANAL B',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Dosador de mandioca picada',comp:'02 - MANCAIS F 211',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Dosador de mandioca picada',comp:'02 - ROLAMENTOS UC 211 EIXO DE 2\'\'',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Dosador de mandioca picada',comp:'01 - MOTO REDUTOR GD40 1X52,73 - SAIDA 32,24 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'02 - ROLAMENTOS 22217 + 02 BUCHAS H 317 - EIXO Ø75 MM',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'02 - RETENTOR VEDABRÁS - 30609R2 - (100 X 130 X 13 MM)',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'01 - RETENTOR VEDABRÁS - 30468R2 - (75 X 95 X 12 MM)',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'01 – ACOPLAMENTO TIPO PNEU MODELO RD – 90',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'01 – MOTOR TRIF 220-380 IP55 100 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'01 – GUINCHO ELÉTRICO MOTOMIL 300 A 600KG 220 MONOFÁSICO',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'01 – PLACA MAGNÉTICA 200 X 200MM – 7500 GRAUSS',trim:'4º',planejada:'2024-10-21',realizada:'2024-10-21',exec:'Valmir / Luan'},
+    {equip:'Bomba de transporte de massa',comp:'01 - MOTO-REDUTOR GA 132 RED. 1 X 7,13 - SAÍDA 238,4 RPM – VAZADO + MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de transporte de massa',comp:'01 - GAXETA ENSEBADA GRAFITADA 3/8" COM 420 MM DE COMP.',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de transporte de massa',comp:'01 - ESTATOR 70.1 BORRACHA 206',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de transporte de massa',comp:'01 - ROTOR F70.1 INOX 304 MACIÇO',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Tanque pulmão para filtro prens',comp:'01 - VALVULA BORBOLETA DISCO INOX 304 COM ALAVANCA 8”',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de carregamento para filt',comp:'01 - MOTO REDUTOR GA180 - 1X7,08 - SAÍDA 240 RPM - 30 CV 4P - COM PÉ E FLANGE DE SAÍDA + MOTOR TRIF 220-380 IP55 30 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de carregamento para filt',comp:'01 - GAXETA ENSEBADA GRAFITADA 3/8" 660 MM DE COMP.',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de carregamento para filt',comp:'01 - ESTATOR 2HF-80 NBRA C. FURO PARA SENSOR',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Bomba de carregamento para filt',comp:'01 - ROTOR 2HF-80 INOX 304 MACICO',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - MOTO-REDUTOR GD30 3R – RED. 1 X 140 – SAÍDA 12,14 RPM + MOTOR TRIF 220-380 IP55 0,75 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 197 X 4 - Nbr-PT 70sh',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 138 X 4 - Nbr-PT 70sh',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 -O´RING CBV - 68 X 10 - Nbr-PT 70 sh',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 268 x 4,5 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 327 x 4,5 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 347 x 4,5 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 367 x 4,5 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 402 x 4,5 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 167 x 3 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - O´RING CBV - 94 X 3 - SPECI NBR - PT70SH',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - GAXETA MOLITHANE POLIPACK 650010417750326 - ØINT.264,60 X ØEXT.290,00 X 3/4" X 1/2" - PARKER',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - GAXETA MOLITHANE POLIPACK 375082506253263 - ØINT.8.1/4" X ØEXT.9" X 5/8" X 3/8" - PARKER 1 - ANEL RASPADOR D-8250 – PARKER',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - GAXETA APC - Nº1597 - 1" X 1.3/8" X 5/16"',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - FITA DE TEFLON COM BRONZE 1/8" X 1" X 1800MM DE COMPRIMENTO',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - MANGUEIRA MAA 300 1" - AR/ÁGUA 300 PSI - 3000 MM DE COMPRIMENTO',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - I3329911018 - BOMBA HIDR.ENG. P11A D04 AQ PARKER',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - I3329111134 - BOMBA HIDR.ENG. P11A D27 AZ PARKER',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - ACOPLAMENTO HDA AC42',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - ACOPLAMENTO HDA AC28',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - S314 - FILTRO SUCCAO S 314 1" NPT 50L (100004 )',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - S520 - FILTRO SUCCAO S 520 1.1/2" NPT 90L (100005 )',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - FILTRO DE RETORNO 1 BSP 10 NOM FR16-A010-08B',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - ROLAMENTO 6306 ZZ - 30 X 72 X 19 MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'04 - ROLAMENTO 6205 ZZ - 25 X 52 X 15 MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - MANCAL P 208',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - ROLAMENTO UC 208 EIXO 1.1-2\'\'',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'04 – ENGRENAGENS EM AÇO INOX 304 PARA CORRENTE ASA 60 COM 15 DENTES',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - CORRENTE ASA 60 INOX 11850 mm DE COMP.',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA GUILHOTINA LH S6000 4 CORPO E FACA INOX 316 PNEUMATICO COD-4W6AHSAWALE',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA ESF TRIP TOTAL INOX 304 OD 3-4\'\' SWO C. ATUADOR DA32 MGA',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA ESF TRIP TOTAL INOX 304 OD 1\'\' SWO C. ATUADOR DA52 MGA',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA ESF TRIP TOTAL INOX 304 OD 1-1-4\'\' SWO C. ATUADOR DA52 MGA',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA ESF TRIP TOTAL INOX 304 OD 2-1-2\'\' SWO C. ATUADOR DA75 MGA',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA ESF TRIP TOTAL INOX 3-4\'\' SWO ALAVANCA MGA',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VALVULA ESF TRIP TOTAL INOX 1\'\' SWO ALAVANCA MGA',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - COTOVELO GIRATÓRIO INOX 1/4 X 8MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - VÁLVULA SOLENOIDE P2A20RS25-IP02E DIRE 1/4 ADEX 5/2VIAS SOL 24VDC',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - BORNE RELE 24VCA/ACC REVERSÍVEL 6A COMPLETO SLIM 6MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - BORNE RELE 24VCA/ACC REVERSÍVEL 16A COMPLETO',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - RELE DE CONTROLE DE FASE TRIFÁSICO 183...528 VCA 2 REV F FASE',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - CONTATO AUXILIAR FRONTAL GVAE11 1 - SENSOR INDUTIVO DS-5MM 12/24VCC 3 FIOS PNP N/A 2M',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - SENSOR MAGNÉTICO KT-32R 10 - FUSÍVEL DE VIDRO 3A 5X20MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - TRANSMISSOR DE PRESSÃO WIKA 0-16 S11',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - TRANSMISSOR DE PRESSÃO WIKA 0-04 S11',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - CABO DE REDE RJ45 1M',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - MANGUEIRA PU AZUL 6MM - 3000 MM DE COMP.',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - MANGUEIRA PU AZUL 8MM - 3000 MM DE COMP.',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - CONEXÃO Y 6MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'02 - CONECTOR COTOVELO GIRATÓRIO 1/8 X 6MM',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - FIM DE CURSO ZV1H 236-11ZP TELEMECANIC',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Filtro prensa automático 40 plc',comp:'01 - FIM DE CURSO (ATUADORES) APL21ON',trim:'4º',planejada:'2024-10-28',realizada:'2024-10-28',exec:'Valmir / Luan'},
+    {equip:'Tanque para retro-lavagem',comp:'01 - BOMBA THEBE THA-16 + MOTOR + MOTOR TRIF 220-380 IP55 3 CV 2P 3540 RPM PREM IR3',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Tanque para retro-lavagem',comp:'03 - VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 4"',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Tanque para retro-lavagem',comp:'03 - VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 3"',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Tanque para retro-lavagem',comp:'01 - VÁLVULA BORBOLETA INOX 304 COM ALAVANCA SOLDÁVEL 2.1/2"',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 - MANCAL F208',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 - ROLAMENTOS UC 208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 - MANCAL F213',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 - ROLAMENTOS UC213 - EIXO Ø63,5 MM',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'01 - GAXETA ENSEBADA GRAFITADA 3/8" - 1600 MM DE COMPRIMENTO',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'01 - GAXETA ENSEBADA GRAFITADA 5/8" - 1600 MM DE COMPRIMENTO',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 - MOTO-REDUTOR GD40 - RED. 1 X 86,67 - SAÍDA 19,61 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'01 - MOTO-REDUTOR GD60 - RED. 1 X 216,79 - SAÍDA 5,30 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'01 - CILINDRO PNEUMÁTICO PARKER P1E-G100MSO-0350',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 - FIM DE CURSO SIEMENS - 3SE5 232 0LE10',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-44',comp:'02 – BUCHA DE TEFLON GRAFITADO 73 X 38,1 X 100 mm',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 - MANCAL F208',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 - ROLAMENTOS UC 208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 - MANCAL F213',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 - ROLAMENTOS UC213 - EIXO Ø63,5 MM',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'01 - GAXETA ENSEBADA GRAFITADA 3/8" - 1600 MM DE COMPRIMENTO',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'01 - GAXETA ENSEBADA GRAFITADA 5/8" - 1600 MM DE COMPRIMENTO',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 - MOTO-REDUTOR GD40 - RED. 1 X 86,67 - SAÍDA 19,61 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'01 - MOTO-REDUTOR GD60 - RED. 1 X 216,79 - SAÍDA 5,30 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'01 - CILINDRO PNEUMÁTICO PARKER P1E-G100MSO-0350',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 - FIM DE CURSO SIEMENS - 3SE5 232 0LE10',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Caixa coletora de massa FPA-30',comp:'02 – BUCHA DE TEFLON GRAFITADO 73 X 38,1 X 100 mm',trim:'4º',planejada:'2024-11-04',realizada:'2024-11-04',exec:'Valmir / Luan'},
+    {equip:'Rosca horizontal CCM Ø250 x 390',comp:'02 - MANCAL F208',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca horizontal CCM Ø250 x 390',comp:'02 - ROLAMENTO UC 208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca horizontal CCM Ø250 x 390',comp:'01 - MOTO-REDUTOR GD40 - RED. 1X14,05 - SAÍDA 121 RPM - VAZADO + MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca horizontal CCM Ø250 x 468',comp:'02 - MANCAL F208',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca horizontal CCM Ø250 x 468',comp:'02 - ROLAMENTO UC 208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca horizontal CCM Ø250 x 468',comp:'01 - MOTO-REDUTOR GD40 - RED. 1X14,05 - SAÍDA 121 RPM - VAZADO + MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'03 - CORREIAS B94',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'01 - POLIA DE FERRO FUNDIDO Ø100 X 3 CANAL B',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'01 – POLIA LISA DE AÇO CARBONO Ø625 mm',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'02 - ROLAMENTO 6208 (40 X 80 X 18 MM)',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'01 - MANCAL F211',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'01 - ROLAMENTO UC211 - EIXO Ø2"',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'01 - SELO MECANICO T01 1 3/4\'\' VITON',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5000 mm',comp:'01 - MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'03 - CORREIAS B94',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'01 - POLIA DE FERRO FUNDIDO Ø100 X 3 CANAL B',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'01 – POLIA LISA DE AÇO CARBONO Ø625 mm',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'02 - ROLAMENTO 6208 (40 X 80 X 18 MM)',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'01 - MANCAL F211',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'01 - ROLAMENTO UC211 - EIXO Ø2"',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'01 - SELO MECANICO T01 1 3/4\'\' VITON',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Rosca vertical Ø250 x 5300 mm',comp:'01 - MOTOR TRIF 220-380 IP55 5 CV 6P 1140 RPM PREM IR3',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Esfarelador de massa prensada ',comp:'01 – MANCAL F205',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Esfarelador de massa prensada ',comp:'01 – ROLAMENTO UC 205 EIXO Ø1”',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Esfarelador de massa prensada ',comp:'01 - MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-11',realizada:'2024-11-11',exec:'Valmir / Luan'},
+    {equip:'Transportador tipo pás 10175 mm',comp:'04 - MANCAL F208',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Transportador tipo pás 10175 mm',comp:'04 - ROLAMENTO UC208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Transportador tipo pás 10175 mm',comp:'01 - MOTO-REDUTOR GD30 RED. 1 X 35 - SAÍDA 48,57 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Transportador tipo pás 11500 mm',comp:'04 - MANCAL F208',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Transportador tipo pás 11500 mm',comp:'04 - ROLAMENTO UC208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Transportador tipo pás 11500 mm',comp:'01 - MOTO-REDUTOR GD30 RED. 1 X 35 - SAÍDA 48,57 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Dosador de massa prensada forno',comp:'04 - MANCAL F208',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Dosador de massa prensada forno',comp:'04 - ROLAMENTO UC208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Dosador de massa prensada forno',comp:'01 - ENGRENAGEM PARA CORRENTE ASA60 COM 50 DENTES',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Dosador de massa prensada forno',comp:'01 - ENGRENAGEM PARA CORRENTE ASA60 COM 15 DENTES',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Dosador de massa prensada forno',comp:'01 - CORRENTE ASA60 COM 1500 MM DE COMPRIMENTO',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Dosador de massa prensada forno',comp:'01 - MOTO-REDUTOR GD40 RED. 1 X 46,67 - SAÍDA 36,43 RPM MOTOR TRIF 220-380 IP55 4 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'01 - MOTOR TRIF 220-380 IP55 15 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'01 - MOTOR TRIF 220-380 IP55 10 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'02 - MANCAL F215',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'02 - ROLAMENTOS UC215 - EIXO Ø3"',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'01 - GAXETA ENSEBADA GRAFITADA 3/8" 1800 MM DE COMP. 4 - CORREIA B90',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'01 – POLIA FF Ø120 X 4 CANAL B',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'01 - POLIA FF Ø500 X 4 CANAL B',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:null},
+    {equip:'Forno pré aquecedor de massa 2x',comp:'04 – CORREIAS B90',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - REDUTOR BREVINI ET3250-MN1-110-619.5232.2742-B3 + MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM C. FLANGE FC NEMA E CAIXA ESQUERDA COD. 12218734 IR3',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - ROLAMENTO 23036EMKW33C3',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - BUCHA H 3036 1°',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - GAXETA GRAFITADA 1/2" 565 mm DE COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - GAXETA GRAFITADA 1/2" 574 mm DE COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - GAXETA GRAFITADA 1/2" 590 mm DE COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - BUCHA DE BORRACHA 80SH EXT.102 X INT.25,4 X 30MM DE ALTURA',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - FLEXIVEL INOX C FLANGE AC 150LBS 1 PONTA GIRAT E 1 PONTA FIXA 1-2 X 300MM',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - ACOPLAMENTO AF-46',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - BOMBA DE ENGRENAGEM DESL 2,5 11101002004',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - BOCAL DE ENCHIMENTO C FILTRO DE AR BE-761',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI - 246 KG-CM² - 330 MM COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI - 246 KG-CM² - 360 MM COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - MANGUEIRA FLEXIVEL HIDRAULICA 1-2\'\'- 3500 PSI 246 KG-CM² - 470 MM COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - MANGUEIRA FLEXIVEL HIDRAULICA 3-8 - 4000 PSI - 280KG-CM² - 600 MM COMP.',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - VALVULA TIPO AGULHA BRONZE 3000 LBS 1-2\'\'',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - FILTRO SUCCAO 3-4\'\' NPT 5 GPM 20LPM FTS020A',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - PLACA MAGNETICA INOX 304 180X180X36 + 15MM DE ABAS ACO 1010-1020 IMAS DE FERRITE',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 – SELO MECÂNICO FCV-A1 2.1/2” UNIPREST',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - RETENTOR SABO 07461 BRF 117,4 X 142,9 X 12,5MM',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - GAXETA VEDABRAS 0019421 TIPO U (63.50 X 76.20 X 9.53)',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'02 - ANEL RASPADOR VEDABRAS 0050106 PD (63.50 X 76.20 X 6.35) AS9',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - CHAVE FIM DE CURSO PLAST - ZV1H 236 11ZP 18843102 (FORNO)',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Forno contínuo a vapor (2x)',comp:'01 - ANEL ORING 0010852 VI VED (106.50 X 3.00)',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'02 - BOMBA THEBE P15-2N - MOTOR TRIF 220-380 IP55 5 CV 2P 3540 RPM IR3',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'03 - JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 1\'\'',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'19 - JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 1 1-2\'\'',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'01 - JUNTA ESPIRALADA GRAFITADA  AISI 304 150 LBS 4\'\'',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'01 - MANOMETRO VERTICAL SEMI INOX 0 A 21 KG 300PSI 1-2\'\' Ø100MM',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'02 - VALVULA DE RETENCAO INOX 316 TIPO WAFER  1 1-2\'\'',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'05 - VALVULA AC ESF INOX TRIP PR 1 1-2\'\' FLANGE 150LBS TF MGA',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'02 - SIFÃO TROMBETA 1-2\'\'',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'02 - FILTRO Y BRONZE 1 1-2\'\'\' 150LBS C. ROSCA',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'01 - PRESSOSTATO ESC. 22 A 300BAR BORNES 1NANF DIF.REG.2NIV XMLB300D2S11',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'02 - FLEXIVEL INOX 1 1-2\'\' X 200MM 1PONTA C. ROSCA 1 1-2\'\' BSP 11 F - UMA PONTA FLANGE GIR 1 1-2\'\' 150LBS',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'01 - VALVULA AC ESF INOX TRIP PR 1\'\' FLANGE 150LBS TF',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'03 - VALVULA AC ESF INOX TRIP PR 1-2\'\' ROSCA 300LBS',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Sistema de retorno de condensad',comp:'01 – BUJÃO DE NÍVEL PARA BOBMA DE CONDENSDO UNIPREST',trim:'4º',planejada:'2024-11-25',realizada:'2024-11-25',exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'03 - JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 2\'\'',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'10 - JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 2 1-2\'\'',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'06 - JUNTA ESPIRALADA GRAFITADA AISI 304 150 LBS 3\'\'',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'03 - MANOMETRO VERTICAL SEMI INOX 0 A 21 KG 300PSI 1-2\'\' Ø100MM',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'01 - VALVULA AC ESF INOX TRIP PR 3 FLANGE 150LBS TF MGA',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'01 - VALVULA DE ALIVIO BRONZE DECA 2\'\' S. CABO',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'01 - FILTRO Y ACO CARBONO 3\'\' FLANGE 150 LBS',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'03 - SIFÃO TROMBETA 1-2\'\'',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'01 - FLEXIVEL INOX C. FLANGE AC 150LBS 1 PONTA GIRAT E 1 PONTA FIXA 2\'\' X 200MM',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'02 - FLEXIVEL INOX C. FLANGE AC 150LBS 2.1-2 X 500MM',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'01 - VALVULA AC ESF INOX TRIP PP 2 FLANGE 150LBS TF MGA',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'02 - VALVULA AC ESF INOX TRIP PP 2.1-2 FLANGE 150LBS TF MGA',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Entrada de vapor para forno con',comp:'01 - VALVULA REDUTORA DE VAPOR 3POL - A1',trim:'4º',planejada:'2024-12-02',realizada:null,exec:'Valmir / Luan'},
+    {equip:'Sistema de aspiração para forno',comp:'01 - MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Sistema de aspiração para forno',comp:'2 - MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Sistema de aspiração para forno',comp:'3 - MOTOR TRIF 220-380 IP55 20 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'02 – MANCAL F208',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'02 – ROLAMENTO UC208 EIXO Ø1.1/2”',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'01 - JUNTA RETANGULAR 205 X 185 X 100 mm',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'01 - MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'01 – POLIA FF Ø80 X 2 CANAL B',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'01 – POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2340 mm (2x)',comp:'02 – CORREIAS B-64',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'01 - MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'01 - POLIA DE FERRO FUNDIDO Ø120 X 1 CANAL A',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'01 - POLIA DE FERRO FUNDIDO Ø350 X 1 CANAL A',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'01 - CORREIA A62',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'02 - MANCAL P20',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'02 ROLAMENTO UC208 - EIXO Ø40 MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Peneira de carolo (2x)',comp:'01 - ROLAMENTO 6216 - 80 X 140 X 26 MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Moinho triturador de carolo com',comp:'01 - MOTOR TRIF 220-380 IP55 7,5 CV 2P 3540 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Moinho triturador de carolo com',comp:'01 - ACOPLAMENTO AP-35',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Moinho triturador de carolo com',comp:'02 - CAIXA PARA ROLAMENTO SN511',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Moinho triturador de carolo com',comp:'02 - ROLAMENTO 22211',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Moinho triturador de carolo com',comp:'02 BUCHA H311 - EIXO Ø50 MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Moinho triturador de carolo com',comp:'20 - MARTELO EM CHAPA 3/16" 58 X 118 MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3220 mm ( (2)',comp:'02 – ROLAMENTO UC208 EIXO Ø1.1/2”',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3220 mm ( (2)',comp:'01 - MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3220 mm ( (2)',comp:'01 – POLIA FF 02 – MANCAL F208',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3220 mm ( (2)',comp:'Ø80 X 2 CANAL B',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3220 mm ( (2)',comp:'01 – POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3220 mm ( (2)',comp:'02 – CORREIAS B-64',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - PLACA MAGNETICA INOX 304 100X180X36 + 15MM DE ABAS ACO 1010-1020 IMÃS DE FERRITE',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - GAXETA ENCEBADA 3-8\'\' - 407 mm DE COMP',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - GAXETA ENCEBADA 3-8\'\' - 439 mm DE COMP',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - RETENTOR SABO 05511 (35 X 50 X 8 BRG) BI FPM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - CORRENTE ASA 160 AÇO CARBONO - 5300 mm DE COMP.',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - BORRACHA ESPONJOSA 7 X 7 mm - 790 mm DE COMP. – 5020000140',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'04 - CORREIA A 65 DENTADA',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - ABRACADEIRA ZINC ROSCA SEM FIM 102-121',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - MANGUEIRA AGUA MAA 150 4.1-2\'\'  X 4\'\' 350 mm DE COMP.',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - MOTOR TRIF 220-380 IP55 2 CV 6P 1140 RPM FLANGE PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - MOTOR TRIF 220-380 IP55 7,5 CV 2P 3540 RPM S. PES E C. FLANGE FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - MOTOR TRIF 220-380 IP55 7,5 CV 4P 1740 RPM S. PES C. FLANGE FF PREM IR3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - REDUTOR BREVINI ED2030-MR1-35,5-00-611.0460.0690-B3',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - POLIA FF TIPO S Ø80 X 2 CANAL A',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 – POLIA FF TIPO S Ø400 X 2 CANAL A',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'04 - ROLAMENTO 6024 ZZ',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - ROLAMENTO 6052',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - TRAVA ELASTICA AC E 120MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'02 - TRAVA ELASTICA AC E 260MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Resfriador de farinha (2x)',comp:'01 - VALVULA BORBOLETA INOX 304 OD 4\'\'',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'01 - MOTOR TRIF 220-380 IP55 10 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'01 - SOPRADOR TIPO ROOTS R100 (RUSSO ROOTS)',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'01 - SILENCIOSO COM MIOLO MB 1113 TURBO',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'02 - MANCAL FC 208',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'02 - ROLAMENTO UC 208 EIXO 40MM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'01 - MOTO REDUTOR GD30 1X74,12 - SAIDA 22,9 RPM - VAZADO C. G-CENTER + MOTOR TRIF 220-380 IP55 1,5 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'01 - POLIA FF TIPO R 200 X 3 CANAL B',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'01 - POLIA FF TIPO R 150 X 3 CANAL B',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'03 - CORREIA B58',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Conjunto de transporte pneumáti',comp:'08 - MANTA FILTRANTE P-500 S. BRITE 1MT DE LARG - 245 X 245 mm = 0,06 M²',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Válvula rotativa',comp:'01 – MOTO REDUTOR GD20 RED. 1 X 170,50 - SAÍDA 6,7 RPM MOTOR TRIF 220-380 IP55 0,25 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Válvula rotativa',comp:'02 – MANCAL FC208',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Válvula rotativa',comp:'02 – ROLAMENTO UC 208 EIXO Ø40 mm',trim:'4º',planejada:'2024-12-02',realizada:'2024-12-02',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 4500 mm',comp:'01 - GD 30 RED. 1 X 35 - SAÍDA 48,66 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM C. PES E S. FLANGE B3E',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 4500 mm',comp:'02 – MANCAL F209',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 4500 mm',comp:'02 – ROLAMENTO UC209 – EIXO Ø 1.3/4”',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:null},
+    {equip:'Rosca inox Ø220 x 4500 mm',comp:'04 – JUNTA 120 X 120 X 150 mm',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'01 - MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'01 - CORREIA B49',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'01 – TRAVA ELÁSTICA E-60',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'01 – ROLAMENTO 6212',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'02 – GRAMPO TENSOR D347',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'04 – MOLA DE FIBRA 106 X 410 mm',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'02 – RETENTOR SABÓ Nº 01842 BRG (60 X 82 X 12)',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'02 – MANCAL P208',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Peneira de classificação de far',comp:'02 – ROLAMENTO UC 208',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3122 mm',comp:'01 - GD 30 RED. 1 X 68,89 - SAÍDA 24,70 RPM + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM C. PES E S. FLANGE B3E',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3122 mm',comp:'02 – MANCAL F209',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3122 mm',comp:'02 – ROLAMENTO UC209 – EIXO Ø 1.3/4”',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 3122 mm',comp:'04 – JUNTA 120 X 120 X 150 mm',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2014 mm',comp:'01 - GD 30 RED. 1 X 7,55 - SAÍDA 225,2 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM C. PES E S. FLANGE B3E',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2014 mm',comp:'02 – MANCAL F209',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø200 x 2014 mm',comp:'02 – ROLAMENTO UC209 – EIXO Ø 1.3/4”',trim:'4º',planejada:'2024-12-09',realizada:'2024-12-09',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'01 - MOTO REDUTOR GD30 1X35,00 - SAIDA 48,6 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'05 - CORREIA B-86 01 - MOTOR TRIF 220-380 IP55 40 CV 2P 3540 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'DENTADA',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'01 – POLIA DE AÇO CARBONO Ø180 X 5 CANAL B',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'01 - POLIA DE AÇO CARBONO Ø250 X 5 CANAL B',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'02 - MANCAL F208',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'02 – ROLAMENTOS UC 208 – EIXO Ø40 mm',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'02 - MANCAL SN 515',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'02 - ROLAMENTO 2215 C3K',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Moinho padronizador de farinha',comp:'02 - BUCHA HE 315',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø180 x 3088 mm',comp:'02 – MANCAL F207',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø180 x 3088 mm',comp:'02 – ROLAMENTO UC207 EIXO Ø1.1/4”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø180 x 3088 mm',comp:'01 - MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM FF PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø180 x 3088 mm',comp:'01 – POLIA FF Ø80 X 2 CANAL B',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø180 x 3088 mm',comp:'01 – POLIA AÇO CARBONO LISA Ø400 X 2 CANAL B',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø180 x 3088 mm',comp:'02 – CORREIAS B-60',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 3690 mm',comp:'01 - GD 30 RED. 1 X 68,89 - SAÍDA 24,70 RPM + MOTOR TRIF 220-380 IP55 2 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 3690 mm',comp:'02 – MANCAL F211',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 3690 mm',comp:'02 – ROLAMENTO UC211 – EIXO Ø 2”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø220 x 3690 mm',comp:'04 – JUNTA 120 X 120 X 150 mm',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 4680 mm',comp:'01 - GD 30 RED. 1 X 7,55 - SAÍDA 225,2 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 4680 mm',comp:'02 – MANCAL F211',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 4680 mm',comp:'02 – ROLAMENTO UC211 – EIXO Ø 2”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 3270 mm',comp:'01 - GD 30 RED. 1 X 7,55 - SAÍDA 225,2 RPM + MOTOR TRIF 220-380 IP55 3 CV 4P 1740 RPM',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 3270 mm',comp:'02 – MANCAL F211',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 3270 mm',comp:'02 – ROLAMENTO UC211 – EIXO Ø 2”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em big bag',comp:'01 - BALANÇA TOLEDO MODELO 2198',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em big bag',comp:'04 - CELULA DE CARGA BALAÇA TOLEDO - MODELO 2198',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em big bag',comp:'01 - CILINDRO PNEUMÁTICO 50 X 100 mm',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em big bag',comp:'01 - DETECTOR DE METAIS - PERFORDMV 6”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em big bag',comp:'04 – ROLAMENTOS 6204',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em big bag',comp:'01 - VALVULA BORBOLETA DISCO INOX 304 COM ATUADOR PNEUMÁTICO',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 4300 mm',comp:'01 – MOTO REDUTOR VERTIMAX WCG20 V04 3 RED. 1X71,24 BMA SAÍDA 24,57 RPM + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 4300 mm',comp:'02 – MANCAL F208',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 4300 mm',comp:'02 – ROLAMENTO UC208 – EIXO Ø 40 mm',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 5900 mm',comp:'01 – MOTO REDUTOR VERTIMAX WCG20 V04 3 RED. 1X71,24 BMA SAÍDA 24,57 RPM + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 5900 mm',comp:'02 – MANCAL F208',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 5900 mm',comp:'02 – ROLAMENTO UC208 – EIXO Ø 40 mm',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 2340 mm',comp:'01 – MOTO REDUTOR VERTIMAX WCG20 V06 2 RED. 1X7,32 BMA - SAÍDA 237,02 RPM + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 2340 mm',comp:'02 – MANCAL F211',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 2340 mm',comp:'02 – ROLAMENTO UC211 – EIXO Ø 2”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'04 - CABO DE ACO GALVANIZADO 3-16\'\' - 1200 mm DE COMP.',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'02 - CILINDRO PNEUMATICO FESTO DSBC 50X100 PPSA N3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'01 - MANGA FILTRANTE INT132 X 1050MMDE COMP TIPO TAMPÃO COM BAINHA, CORDA FIXA E ALC',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'04 - ESTICADOR P CABO DE ACO 3-16\'\' GANCHO-OLHAL LEVE',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'08 - GRAMPO LEVE (CLIPS) - DIN 741 GALVANIZADO - PARA CABO DE AÇO 3-16\'\'',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'01 - VALVULA BORBOLETA FOFO DISCO INOX 8\'\' C. ATUADOR PNEUMATICO',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'01 - ABRAÇADEIRA ZINC TIPO MG 111 – 123',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'01 - BALANÇA TOLEDO MODELO 2198',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'04 - CELULA DE CARGA BALAÇA TOLEDO - MODELO 2198',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Sistema de envase em Big Bag ',comp:'04 – ROLAMENTO 6204',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 3550 mm',comp:'01 – MOTO REDUTOR VERTIMAX WCG20 V06 2 RED. 1X7,32 BMA - SAÍDA 237,02 RPM + MOTOR TRIF 220-380 IP55 5 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 3550 mm',comp:'02 – MANCAL F211',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Rosca inox Ø250 x 3550 mm',comp:'02 – ROLAMENTO UC211 – EIXO Ø 2”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'01 – MOTO REDUTOR GD 20 - RED. 1 X 64,21 - SAIDA 26,5 RPM - VAZADO + MOTOR TRIF 220-380 IP55 1 CV 4P 1740 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'01 - MOTOR TRIF 220-380 IP55 4 CV 6P 1140 RPM PREM IR3',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'01 - ACOPLAMENTO GMAX 90',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'02 – MANCAL P207',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'02 – ROLAMENTO UC 207 – EIXO Ø1.1/4”',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'02 – MANCAL FC 208',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
+    {equip:'Ensacadeira para envase valvula',comp:'02 – ROLAMENTO UC208 – EIXO Ø40 mm',trim:'4º',planejada:'2024-12-16',realizada:'2024-12-16',exec:'Valmir / Luan'},
   ],
 
   planos: [
     {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento LA',period:'30 dias',qty:null},
     {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento LOA 1',period:'30 dias',qty:null},
     {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento LOA 2',period:'30 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento central',period:'30 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar rolamento LA 22211 EAK – 3 un.',period:'356 dias',qty:3},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar bucha HE 311 – 3 un.',period:'356 dias',qty:3},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar rolamento LA 22217 EAK',period:'356 dias',qty:1},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar bucha HE 317',period:'356 dias',qty:1},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar amortecedor da haste de vibração – 2 un.',period:'356 dias',qty:2},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar trincas na estrutura',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar temperatura',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar ruído',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar vibração',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Rolamento LA 22211 EAK – verificar ruído',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Rolamento LA 22211 EAK – verificar desgaste',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800',plano:'LU',item:'Lubrificar rolamentos externos',period:'30 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800',plano:'PRM',item:'Trocar serrinhas do rolo',period:'180 dias',qty:1},
-    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800',plano:'IRM',item:'Verificar tensão das correias',period:'14 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Filtro prensa auto.',plano:'LU',item:'Lubrificar guias das placas',period:'30 dias',qty:null},
-    {setor:'EXTRAÇÃO',equip:'Filtro prensa auto.',plano:'IRM',item:'Verificar válvulas de ar dos inversores',period:'14 dias',qty:null},
-    {setor:'SECAGEM',equip:'Forno contínuo vapor',plano:'LU',item:'Lubrificar rolamentos da corrente',period:'30 dias',qty:null},
-    {setor:'SECAGEM',equip:'Forno contínuo vapor',plano:'PRM',item:'Trocar juntas e vedações de vapor',period:'180 dias',qty:4},
-    {setor:'SECAGEM',equip:'Forno contínuo vapor',plano:'IRM',item:'Verificar sensor de temperatura (flange)',period:'14 dias',qty:null},
-    {setor:'SECAGEM',equip:'Peneira vibratória',plano:'LU',item:'Engraxar mancais da peneira',period:'30 dias',qty:null},
-    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'LU',item:'Lubrificar gaxetas e registros',period:'30 dias',qty:null},
-    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'IRM',item:'Verificar nível de água (visores)',period:'7 dias',qty:null},
-    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'IRM',item:'Verificar pressão de trabalho',period:'7 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Verificar tensão das correias',period:'7 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Verificar fixação dos mancais',period:'7 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar correias',period:'180 dias',qty:3},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar rolamentos',period:'365 dias',qty:4},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800 mm',plano:'IRM',item:'Verificar serrinhas do rotor',period:'7 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800 mm',plano:'IRM',item:'Verificar fixação do acoplamento',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800 mm',plano:'PRM',item:'Trocar serrinhas do rotor',period:'180 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800 mm',plano:'PRM',item:'Revisar acoplamento tipo pneu',period:'180 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Filtro prensa automático FPA-44',plano:'IRM',item:'Verificar pressão das placas',period:'7 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Filtro prensa automático FPA-44',plano:'PRM',item:'Trocar o-rings das placas',period:'365 dias',qty:null},
+    {setor:'SECAGEM',equip:'Forno contínuo a vapor',plano:'IRM',item:'Verificar nível de água do visor',period:'7 dias',qty:null},
+    {setor:'SECAGEM',equip:'Forno contínuo a vapor',plano:'IRM',item:'Verificar pressão do vapor',period:'7 dias',qty:null},
+    {setor:'SECAGEM',equip:'Forno contínuo a vapor',plano:'PRM',item:'Substituir juntas e vedações',period:'180 dias',qty:null},
+    {setor:'SECAGEM',equip:'Forno contínuo a vapor',plano:'PRM',item:'Limpeza dos tubos internos',period:'180 dias',qty:null},
     {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'PRM',item:'Limpeza dos tubos internos',period:'180 dias',qty:null},
   ],
 
+  lubrificacao: [
+    {setor:'Recepção descarga',equip:'ENTRADA DO ROLO DA ROSCA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE FG',bombadas:'3.0',frequencia:'SEMANALMENTE'},
+    {setor:'Recepção descarga',equip:'ENTRADA DO ROLO DA ROSCA',item:'REDUTOR',lubrificante:'CERTOP',bombadas:'VER. NIVEL',frequencia:'TRIMESTRALMENTE'},
+    {setor:'Recepção descarga',equip:'ROSCA SAÍDA DO ROLO',item:'MANCAL ROLAMENTO',lubrificante:'',bombadas:'2.0',frequencia:'QUINZENAL'},
+    {setor:'Recepção descarga',equip:'ROSCA SAÍDA DO ROLO',item:'REDUTOR',lubrificante:'CERTOP',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'Recepção descarga',equip:'PENEIRÃO TERRA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'2 A 3',frequencia:'QUINZENAL'},
+    {setor:'Recepção descarga',equip:'SISTEMA DE ROSCA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'3 A 4',frequencia:'SEMANALMENTE'},
+    {setor:'Recepção descarga',equip:'ESTEIRA TERRA RETIRADA PENEIRÃO',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'3 A 4',frequencia:'SEMANALMENTE'},
+    {setor:'Recepção descarga',equip:'ESTEIRA TERRA RETIRADA PENEIRÃO',item:'REDUTOR',lubrificante:'CERTOP',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'Recepção descarga',equip:'REDER',item:'MANCAL ROLAMENTO',lubrificante:'',bombadas:'3 A 4',frequencia:'SEMANALMENTE'},
+    {setor:'Recepção descarga',equip:'BALANÇA',item:'MANCAL ROLAMENTO',lubrificante:'',bombadas:'3 A 4',frequencia:'QUINZENAL'},
+    {setor:'Recepção descarga',equip:'BALANÇA',item:'REDUTOR',lubrificante:'',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'Armazenamento',equip:'TRANSPORTADOR HELICOIDAL Nº1',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'2 A 3',frequencia:'SEMANAL'},
+    {setor:'Armazenamento',equip:'TRANSPORTADOR HELICOIDAL Nº2',item:'REDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'SISTEMA DE ROSCA',item:'REDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'ROSCA INCLINADA',item:'MOTORREDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'LAVADOR 1',item:'MOTORREDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'PENEIRA',item:'MOTOR /POLIA',lubrificante:'PREMALUBE XTREME FG',bombadas:'2 A 3',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'ROSCA SAÍDA DA PENEIRA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'2 A 4',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'LAVADOR 2',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'2 A 3',frequencia:'MENSAL'},
+    {setor:'Armazenamento',equip:'CORREIA DE INSPEÇÃO',item:'MOTORREDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'Moagem',equip:'ESTEIRA DE ESCOLHA DE MANDIOCA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'3 A 4',frequencia:'SEMANAL'},
+    {setor:'Moagem',equip:'MOINHO PICADOR DE MANDIOCA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'5 A 7',frequencia:'SEMANAL'},
+    {setor:'Moagem',equip:'ROSCA ELEVADORA DE MANDIOCA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'5 A 7',frequencia:'SEMANAL'},
+    {setor:'Moagem',equip:'CEVADEIRA',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE  FG',bombadas:'5 A 6',frequencia:'SEMANAL'},
+    {setor:'extração',equip:'BOMBA DE TRANSPORTE DE MASSA',item:'MOTORREDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'FILTRO PRENSA AUTOMÁTICO 1',item:'MOTORREDUTOR',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'CAIXA COLETORA E DOSADORA DE MASSA 1',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE  XTREME FG',bombadas:'5 A 6',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'ROSCA HORIZONTAL 1',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE  XTREME FG',bombadas:'5 A 6',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'ROSCA VERTICAL 1',item:'ROLAMENTO',lubrificante:'PREMALUBE  XTREME FG',bombadas:'5 A 6',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'BOMBA DE TRANSPORTE DE MASSA 2',item:'MANCAL ROLAMENTO',lubrificante:'CERTOP FG',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'FILTRO PRENSA AUTOMÁTICO 2',item:'MOTORREDUTOR',lubrificante:'ÓLEO 220',bombadas:'VER. NIVEL',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'PISTÃO DA PRENSA 01',item:'BOMBA',lubrificante:'ÓLEO 68',bombadas:'',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'CAIXA COLETORA E DOSADORA DE MASSA 2',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE  XTREME FG',bombadas:'5 A 6',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'ROSCA HORIZONTAL 2',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE  XTREME FG',bombadas:'5 A 6',frequencia:'QUINZENAL'},
+    {setor:'extração',equip:'ROSCA VERTICAL 2',item:'ROLAMENTO',lubrificante:'PREMALUBE  XTREME FG',bombadas:'5 A 6',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'DOSADOR DE MASSA PRENSADA PARA FORNO PRÉ-AQUECEDOR 1',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'4 A 5',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'DOSADOR DE MASSA PRENSADA PARA FORNO PRÉ-AQUECEDOR 2',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'4 A 5',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'FORNO PRÉ-AQUECEDOR DE MASSA DE MANDIOCA 1',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'4 A 5',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'FORNO CONTINUO A VAPOR 1',item:'ROLAMENTO',lubrificante:'PREMALUBE  FG',bombadas:'2 A 3',frequencia:'SEMANAL'},
+    {setor:'secagem',equip:'FORNO CONTINUO A VAPOR 2',item:'ROLAMENTO',lubrificante:'PREMALUBE  FG',bombadas:'2 A 3',frequencia:'SEMANAL'},
+    {setor:'secagem',equip:'PENEIRA VIBRATÓPORIA 1',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'7 A 8',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'PENEIRA VIBRATÓPORIA 2',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'7 A 8',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'MOINHO TRITURADOR DE CAROLO COM TRANSPORTE PNEUMÁTICO 1',item:'ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'2 A 3',frequencia:'QUINZENAL'},
+    {setor:'secagem',equip:'RESFRIADOR PARA FARINHA DE MANDIOCA 1',item:'ROLAMENTO',lubrificante:'PREMALUBE XTREME FG',bombadas:'3 A 4',frequencia:'QUINZENAL'},
+    {setor:'ENSAQUE',equip:'ROSCA HORIZONTAL',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE FG',bombadas:'3  A 4',frequencia:'SEMANAL'},
+    {setor:'ENSAQUE',equip:'ROSCA VERTICAL',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE FG',bombadas:'3 A 4',frequencia:'SEMANAL'},
+    {setor:'ENSAQUE',equip:'PADRONIZADOR',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE FG',bombadas:'3 A 4',frequencia:'SEMANAL'},
+    {setor:'ENSAQUE',equip:'MOINHO',item:'MANCAL ROLAMENTO',lubrificante:'PREMALUBE FG',bombadas:'3 A 4',frequencia:'SEMANAL'},
+  ],
+
+  colaboradores: [
+    {id:1,nome:'Valmir',funcao:'Técnico Mecânico',setor:'Manutenção'},
+    {id:2,nome:'Luan',funcao:'Técnico Mecânico',setor:'Manutenção'},
+    {id:3,nome:'Eduardo',funcao:'Supervisor',setor:'Manutenção'},
+    {id:4,nome:'Reginaldo',funcao:'Operador',setor:'Extração'},
+  ],
+
   ferramentasEletrica: [
-    {nome:'Alicate Universal 8" c/ prensa terminal',qty:1},
-    {nome:'Alicate de Bico Meia Cana isolado 5"',qty:1},
+    {nome:'Alicate Universal 8” c/ prensa terminal',qty:1},
+    {nome:'Alicate de Bico Meia Cana isolado 5”',qty:1},
     {nome:'Alicate de Corte Diagonal',qty:1},
-    {nome:'Alicate de Pressão 8"',qty:1},
+    {nome:'Alicate de Pressão 8”',qty:1},
     {nome:'Chave Canhão 10mm',qty:1},
     {nome:'Chave Canhão 08mm',qty:1},
     {nome:'Chave Canhão 07mm',qty:1},
     {nome:'Chave Canhão 06mm',qty:1},
     {nome:'Chave Combinada 06mm',qty:1},
+    {nome:'Chave Combinada 07mm',qty:1},
     {nome:'Chave Combinada 08mm',qty:1},
-    {nome:'Multímetro digital',qty:1},
-    {nome:'Lanterna profissional',qty:1},
-    {nome:'Fita isolante 20m',qty:2},
-    {nome:'Chave de Fenda 6" plana',qty:1},
-    {nome:'Chave Phillips n°2',qty:1},
+    {nome:'Chave Combinada 10mm',qty:2},
+    {nome:'Chave Combinada 11mm',qty:2},
+    {nome:'Chave Combinada 13mm',qty:2},
+    {nome:'Chave Combinada 14mm',qty:2},
+    {nome:'Chave Combinada 17mm',qty:2},
+    {nome:'Chave Combinada 19mm',qty:2},
+    {nome:'Chave Combinada 22mm',qty:2},
+    {nome:'Chave Combinada 24mm',qty:2},
+    {nome:'Chave Inglesa 8\'\' ou 10”',qty:1},
+    {nome:'Chave de Fenda ¼”x5”  isol para 1000V',qty:1},
+    {nome:'Chave de Fenda 1/8”x5”  isol para 1000V',qty:1},
+    {nome:'Chave de Fenda 3/16”x6”  isol para 1000V',qty:1},
+    {nome:'Chave de Fenda 3/8”x10”  isol para 1000V',qty:1},
+    {nome:'Chave Philips ¼”x5”  isol para 1000V',qty:1},
+    {nome:'Chave Philips 3/16”x3”  isol para 1000V',qty:1},
+    {nome:'Jogo de Chave ALLEN MM',qty:1},
+    {nome:'Jogo de Chave TORX',qty:1},
+    {nome:'Alicate Amperímetro (Multímetro)',qty:1},
+    {nome:'Caixa de ferramentas',qty:1},
   ],
 
   ferramentasMecanica: [
-    {nome:'Jogo Allen polegada',qty:1},
-    {nome:'Alicate Universal 8"',qty:1},
-    {nome:'Alicate de Bico Reto 5"',qty:1},
-    {nome:'Alicate de Pressão 8"',qty:1},
-    {nome:'Chave Biela 10mm',qty:1},
-    {nome:'Chave Biela 13mm',qty:1},
-    {nome:'Chave Biela 19mm',qty:1},
-    {nome:'Chave Combinada 06mm',qty:2},
-    {nome:'Chave Combinada 07mm',qty:2},
-    {nome:'Chave Combinada 08mm',qty:2},
-    {nome:'Chave Combinada 10mm',qty:2},
-    {nome:'Chave Combinada 13mm',qty:2},
-    {nome:'Marreta 1kg',qty:1},
-    {nome:'Extrator de rolamento',qty:1},
-    {nome:'Torquímetro',qty:1},
-    {nome:'Paquímetro digital',qty:1},
+    {nome:'jogo allen polegada',qty:1},
+    {nome:'chave inglesa 12\'',qty:1},
+    {nome:'chave grifo 300mm',qty:1},
+    {nome:'chave 28\'',qty:2},
+    {nome:'espatula 18\'',qty:1},
+    {nome:'chave 15/16',qty:2},
+    {nome:'chave 22\'',qty:2},
+    {nome:'chave 21\'',qty:1},
+    {nome:'chave 20\'',qty:1},
+    {nome:'chave 20-22\'',qty:1},
+    {nome:'chave 19\'',qty:2},
+    {nome:'chave 3/4',qty:2},
+    {nome:'chave 17\'',qty:2},
+    {nome:'chave 16\'',qty:2},
+    {nome:'chave 5/8\'',qty:1},
+    {nome:'chave 15\'',qty:2},
+    {nome:'chave 14\'',qty:2},
+    {nome:'chave 9/16\'',qty:2},
+    {nome:'chave 1/2\'',qty:3},
+    {nome:'chave 13\'',qty:1},
+    {nome:'chave 12\'',qty:2},
+    {nome:'chave 11\'',qty:2},
+    {nome:'chave 10\'',qty:2},
+    {nome:'chave 9\'',qty:1},
+    {nome:'chave 8\'',qty:2},
+    {nome:'jogo allen milimetros',qty:1},
+    {nome:'chave 27\'',qty:2},
+    {nome:'chave 32\'',qty:2},
+    {nome:'chave 30\'',qty:1},
+    {nome:'chave L 3/4\'',qty:1},
+    {nome:'chave canhão 8\'',qty:1},
+    {nome:'chave canhão 10\'',qty:1},
+    {nome:'chave canhão 11\'',qty:1},
+    {nome:'chave canhão 12\'',qty:1},
+    {nome:'chave canhão 13\'',qty:1},
+    {nome:'chave de fenda 4\'',qty:2},
+    {nome:'chave de fenda 6\'',qty:2},
+    {nome:'chave de fenda 10\'',qty:1},
+    {nome:'chave de fenda 1,1/2\'',qty:1},
+    {nome:'chave philips 4\'',qty:2},
+    {nome:'chave philips 8\'',qty:1},
+    {nome:'lima chata 8\'',qty:1},
+    {nome:'alicates de pressão',qty:2},
+    {nome:'alicates de trava elástica',qty:3},
+    {nome:'talhadeira 14\'',qty:1},
+    {nome:'talhadeira 10\'',qty:1},
+    {nome:'marreta 1kg',qty:1},
+    {nome:'alicate universal',qty:1},
+    {nome:'alicate de bica',qty:1},
+    {nome:'alicate de corte',qty:1},
+  ],
+
+  caixasFerramentas: [
+    {caixa:'VERDE',nome:'CHAVE 1/2 OU 13',qty:2,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'CHAVE 9/16 OU 14',qty:2,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'CHAVE 3/4 OU 19',qty:2,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'CHAVE 15/16 OU 24',qty:2,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'CHAVE DE FENDA',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'CHAVE PHILIPS',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'ALICATE UNIVERSAL',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'ALICATE DE CORTE',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'MARRETA DE BORRACHA',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'MARRETA',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'FITA ISOLANTE',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERDE',nome:'FITA DE ALTA FUSÃO',qty:1,area:'Secagem / Ensaques'},
+    {caixa:'VERMELHA',nome:'CHAVE 1/2 OU 13',qty:2,area:''},
+    {caixa:'VERMELHA',nome:'CHAVE 9/16 OU 14',qty:2,area:''},
+    {caixa:'VERMELHA',nome:'CHAVE 3/4 OU 19',qty:2,area:''},
+    {caixa:'VERMELHA',nome:'CHAVE 15/16 OU 24',qty:2,area:''},
+    {caixa:'VERMELHA',nome:'CHAVE DE FENDA',qty:1,area:''},
+    {caixa:'VERMELHA',nome:'CHAVE PHILIPS',qty:1,area:''},
+    {caixa:'VERMELHA',nome:'ALICATE UNIVERSAL',qty:1,area:''},
+    {caixa:'VERMELHA',nome:'ALICATE DE CORTE',qty:1,area:''},
+    {caixa:'VERMELHA',nome:'MARRETA DE BORRACHA',qty:1,area:''},
+    {caixa:'VERMELHA',nome:'MARRETA',qty:1,area:''},
   ],
 };
 
@@ -1444,11 +2185,25 @@ const STORAGE_KEY = 'pcm_ordens_extra';
 let ordensExtras = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 function allOrdens() { return [...DB.ordens, ...ordensExtras]; }
 
+function allColaboradores() {
+  const extras = JSON.parse(localStorage.getItem('pcm_colaboradores_extra') || '[]');
+  return [...DB.colaboradores, ...extras];
+}
+
+function allLubrificacao() {
+  const extras = JSON.parse(localStorage.getItem('pcm_lu_extra') || '[]');
+  return [...DB.lubrificacao, ...extras];
+}
+
+function allLuExecucoes() {
+  return JSON.parse(localStorage.getItem('pcm_lu_execucoes') || '[]');
+}
+
 // ══════════════════════════════════════════
 // PAGINAÇÃO
 // ══════════════════════════════════════════
 const PAGE_SIZE = 12;
-let osPage = 1, prevPage = 1, planPage = 1;
+let osPage = 1, prevPage = 1, planPage = 1, luPage = 1;
 
 // ══════════════════════════════════════════
 // RELÓGIO
@@ -1483,6 +2238,8 @@ function goPage(id) {
   if (id === 'equipamentos') renderEquipamentos();
   if (id === 'ferramentas') renderFerramentas();
   if (id === 'cadastros') { switchCadTab('equip'); }
+  if (id === 'lubrificacao') { luPage = 1; renderLubrificacao(); }
+  if (id === 'colaboradores') renderColaboradores();
 }
 
 // ══════════════════════════════════════════
@@ -1870,6 +2627,8 @@ function allSetores() {
 const SETOR_ICONS = {
   'EXTRAÇÃO':'🌿','SECAGEM':'🔥','CALDEIRA':'♨️','ENSAQUE':'📦',
   'ENSAQUE 2':'📦','ENSAQUE 3':'📦','OFICINA':'🛠️','POÇO':'💧',
+  'ÁREA SECA':'🌾','ENSAQUE 02':'📦','ARMAZENAMENTO':'🏪',
+  'RECEPÇÃO DESCARGA':'🚛','MOAGEM':'⚙️','MANUTENÇÃO':'🔧',
 };
 function setorIcon(s) { return SETOR_ICONS[s] || '🏭'; }
 
@@ -1947,6 +2706,7 @@ function allFerretasMecanica() {
 }
 
 function renderFerramentas() {
+  renderCaixasFerramentas();
   const checkState = JSON.parse(localStorage.getItem('pcm_check_state') || '{}');
 
   function buildCard(title, type, items) {
@@ -2242,6 +3002,229 @@ function excluirSetor(nome) {
   localStorage.setItem('pcm_setores_extra', JSON.stringify(updated));
   renderCadSetores();
   renderEquipamentos();
+}
+
+
+
+// ══════════════════════════════════════════
+// CAIXAS DE FERRAMENTAS (Verde / Vermelha)
+// ══════════════════════════════════════════
+function renderCaixasFerramentas() {
+  const container = document.getElementById('checklist-grid');
+  if (!container) return;
+
+  const caixas = {};
+  DB.caixasFerramentas.forEach(f => {
+    if (!caixas[f.caixa]) caixas[f.caixa] = [];
+    caixas[f.caixa].push(f);
+  });
+
+  const cores = { VERDE: '#34d399', VERMELHA: '#f87171' };
+
+  const caixaHtml = Object.entries(caixas).map(([cor, items]) => `
+    <div class="checklist-card" style="border-top:3px solid ${cores[cor]||'var(--border)'}">
+      <div class="checklist-title">
+        <span style="color:${cores[cor]||'var(--muted)'};font-weight:700">● Caixa ${cor}</span>
+        <span style="color:var(--muted);font-size:.75rem">${items[0]?.area||''}</span>
+      </div>
+      <table style="width:100%;font-size:.8rem;border-collapse:collapse;">
+        <thead>
+          <tr style="color:var(--muted);font-size:.7rem">
+            <th style="text-align:left;padding:4px 0">Item</th>
+            <th style="text-align:center;padding:4px 0">Qtd</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(f => `
+            <tr style="border-top:1px solid var(--border)">
+              <td style="padding:5px 0">${f.nome}</td>
+              <td style="text-align:center;font-family:var(--mono)">${f.qty}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+
+  // Inserir no topo do checklist-grid se não existir já
+  let caixaDiv = document.getElementById('caixas-ferramentas-section');
+  if (!caixaDiv) {
+    caixaDiv = document.createElement('div');
+    caixaDiv.id = 'caixas-ferramentas-section';
+    caixaDiv.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:28px';
+    container.parentNode.insertBefore(caixaDiv, container);
+  }
+  caixaDiv.innerHTML = `
+    <div style="grid-column:1/-1;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:-4px">Inventário de Caixas</div>
+    ${caixaHtml}`;
+}
+
+// ══════════════════════════════════════════
+// LUBRIFICAÇÃO
+// ══════════════════════════════════════════
+function luFreqBadge(freq) {
+  const f = (freq||'').toUpperCase();
+  if (f.includes('SEMAN')) return '<span class="badge badge-blue">Semanal</span>';
+  if (f.includes('QUINZ')) return '<span class="badge badge-yellow">Quinzenal</span>';
+  if (f.includes('MENSAL') || f === 'MENSAL') return '<span class="badge badge-gray">Mensal</span>';
+  if (f.includes('TRIM'))  return '<span class="badge badge-green">Trimestral</span>';
+  return `<span class="badge badge-gray">${freq||'—'}</span>`;
+}
+
+function renderLubrificacao() {
+  const setorFilter = document.getElementById('lu-setor-filter').value;
+  const freqFilter  = document.getElementById('lu-freq-filter').value;
+  const q = (document.getElementById('lu-search')?.value || '').toLowerCase();
+
+  // Preencher opções de setor
+  const setorEl = document.getElementById('lu-setor-filter');
+  const setores = [...new Set(DB.lubrificacao.map(l => l.setor))];
+  if (setorEl.options.length <= 1) {
+    setores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      setorEl.appendChild(opt);
+    });
+  }
+
+  const execucoes = allLuExecucoes();
+  let items = allLubrificacao().filter(l => {
+    const matchSetor = !setorFilter || l.setor === setorFilter;
+    const matchFreq  = !freqFilter  || (l.frequencia||'').toUpperCase().includes(freqFilter.toUpperCase().replace('SEMANALMENTE','SEMAN').replace('SEMANAL','SEMAN'));
+    const matchQ     = !q || l.equip.toLowerCase().includes(q) || l.item.toLowerCase().includes(q);
+    return matchSetor && matchFreq && matchQ;
+  });
+
+  document.getElementById('lu-count-label').textContent = `${items.length} item(ns) de lubrificação`;
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  luPage = Math.min(luPage, totalPages);
+  const slice = items.slice((luPage-1)*PAGE_SIZE, luPage*PAGE_SIZE);
+
+  document.getElementById('lu-tbody').innerHTML = slice.map((l,idx) => {
+    const key = `${l.setor}||${l.equip}||${l.item}`;
+    const execs = execucoes.filter(e => e.key === key).sort((a,b) => b.data.localeCompare(a.data));
+    const ultima = execs[0];
+    const hoje = new Date().toISOString().slice(0,10);
+
+    let status = '<span class="badge badge-gray">Pendente</span>';
+    if (ultima) {
+      const diff = Math.floor((new Date(hoje) - new Date(ultima.data)) / 86400000);
+      const limites = {semanal:7,semanalmente:7,quinzenal:15,mensal:30,trimestralmente:92};
+      const f = (l.frequencia||'').toLowerCase().replace('semanal','semanal');
+      const limite = limites[f] || 999;
+      status = diff <= limite
+        ? '<span class="badge badge-green">Em dia</span>'
+        : '<span class="badge badge-red">Atrasado</span>';
+    }
+
+    return `<tr>
+      <td><span style="font-size:.72rem;color:var(--muted)">${l.setor}</span></td>
+      <td style="font-weight:600">${l.equip}</td>
+      <td>${l.item}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${l.lubrificante||'—'}</td>
+      <td style="font-family:var(--mono);text-align:center">${l.bombadas||'—'}</td>
+      <td>${luFreqBadge(l.frequencia)}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${ultima ? ultima.data + '<br><span style="color:var(--muted);font-size:.72rem">'+ultima.exec+'</span>' : '—'}</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nenhum item encontrado</td></tr>';
+
+  renderPagination('lu-pag', totalPages, luPage, 'p => { luPage=p; renderLubrificacao(); }');
+}
+
+function populateLuSetores() {
+  const sel = document.getElementById('fle-setor');
+  const setores = [...new Set(allLubrificacao().map(l => l.setor))];
+  sel.innerHTML = '<option value="">Selecione…</option>' + setores.map(s => `<option>${s}</option>`).join('');
+}
+
+function populateLuEquip() {
+  const setor = document.getElementById('fle-setor').value;
+  const equips = [...new Set(allLubrificacao().filter(l => l.setor === setor).map(l => l.equip))];
+  document.getElementById('fle-equip').innerHTML = '<option value="">Selecione…</option>' + equips.map(e => `<option>${e}</option>`).join('');
+  document.getElementById('fle-item').innerHTML = '<option value="">Selecione…</option>';
+}
+
+function populateLuItem() {
+  const setor = document.getElementById('fle-setor').value;
+  const equip = document.getElementById('fle-equip').value;
+  const items = allLubrificacao().filter(l => l.setor === setor && l.equip === equip).map(l => l.item);
+  document.getElementById('fle-item').innerHTML = '<option value="">Selecione…</option>' + items.map(i => `<option>${i}</option>`).join('');
+}
+
+function openModalLuExec() {
+  populateLuSetores();
+  // Preencher executantes
+  const execEl = document.getElementById('fle-exec');
+  const colabs = allColaboradores();
+  execEl.innerHTML = '<option value="">Selecione…</option>' + colabs.map(c => `<option>${c.nome}</option>`).join('');
+  document.getElementById('fle-data').value = new Date().toISOString().slice(0,10);
+  openModal('modal-lu-exec');
+}
+
+function salvarLuExec() {
+  const setor = document.getElementById('fle-setor').value;
+  const equip = document.getElementById('fle-equip').value;
+  const item  = document.getElementById('fle-item').value;
+  const data  = document.getElementById('fle-data').value;
+  const exec  = document.getElementById('fle-exec').value;
+  if (!setor || !equip || !item || !data || !exec) {
+    alert('Preencha todos os campos obrigatórios.'); return;
+  }
+  const execucoes = allLuExecucoes();
+  execucoes.push({ key: `${setor}||${equip}||${item}`, setor, equip, item, data, exec,
+    obs: document.getElementById('fle-obs').value });
+  localStorage.setItem('pcm_lu_execucoes', JSON.stringify(execucoes));
+  closeModal('modal-lu-exec');
+  renderLubrificacao();
+}
+
+// ══════════════════════════════════════════
+// COLABORADORES
+// ══════════════════════════════════════════
+function renderColaboradores() {
+  const q = (document.getElementById('colab-search')?.value || '').toLowerCase();
+  const colabs = allColaboradores().filter(c =>
+    !q || c.nome.toLowerCase().includes(q) || c.funcao.toLowerCase().includes(q) || c.setor.toLowerCase().includes(q)
+  );
+
+  document.getElementById('colab-count-label').textContent = `${colabs.length} colaborador(es)`;
+
+  const baseLen = DB.colaboradores.length;
+  document.getElementById('colab-tbody').innerHTML = colabs.map((c, i) => `
+    <tr>
+      <td style="font-family:var(--mono);color:var(--muted)">${String(i+1).padStart(3,'0')}</td>
+      <td style="font-weight:700">${c.nome}</td>
+      <td>${c.funcao}</td>
+      <td>${c.setor}</td>
+      <td>
+        ${i >= baseLen
+          ? `<button class="btn btn-danger btn-sm" onclick="excluirColaborador(${i})">Excluir</button>`
+          : '<span style="color:var(--muted);font-size:.75rem">cadastro base</span>'}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nenhum colaborador cadastrado</td></tr>';
+}
+
+function salvarColaborador() {
+  const nome   = document.getElementById('fc-nome').value.trim();
+  const funcao = document.getElementById('fc-funcao').value;
+  const setor  = document.getElementById('fc-setor').value.trim();
+  if (!nome || !setor) { alert('Preencha nome e setor.'); return; }
+  const extras = JSON.parse(localStorage.getItem('pcm_colaboradores_extra') || '[]');
+  const maxId  = allColaboradores().reduce((m,c) => Math.max(m, c.id||0), 0);
+  extras.push({id: maxId+1, nome, funcao, setor});
+  localStorage.setItem('pcm_colaboradores_extra', JSON.stringify(extras));
+  closeModal('modal-colaborador');
+  document.getElementById('fc-nome').value = '';
+  document.getElementById('fc-setor').value = '';
+  renderColaboradores();
+}
+
+function excluirColaborador(i) {
+  if (!confirm('Excluir colaborador?')) return;
+  const extras = JSON.parse(localStorage.getItem('pcm_colaboradores_extra') || '[]');
+  extras.splice(i - DB.colaboradores.length, 1);
+  localStorage.setItem('pcm_colaboradores_extra', JSON.stringify(extras));
+  renderColaboradores();
 }
 
 // ══════════════════════════════════════════
