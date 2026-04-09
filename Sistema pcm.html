@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCM — Planejamento e Controle de Manutenção</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    /* ── Paleta principal ── */
+    --navy:       #074798;   /* azul marinho base */
+    --navy-dark:  #053a7a;   /* marinho escuro — topbar, sidebar */
+    --navy-deep:  #042d60;   /* marinho profundo — hover ativo */
+    --navy-mid:   #0a5bb5;   /* marinho médio — surface cards */
+    --navy-light: #1a6fcc;   /* azul claro — hover, bordas ativas */
+    --navy-pale:  #1e5fa0;   /* superfície secundária */
+    --white:      #F1FFFF;   /* branco azulado — texto principal */
+    --white-dim:  rgba(241,255,255,.7);   /* texto secundário */
+    --white-soft: rgba(241,255,255,.12);  /* bordas suaves */
+    --white-faint:rgba(241,255,255,.06);  /* fundo hover linha */
+
+    /* ── Mapeamento semântico ── */
+    --bg:       #042d60;
+    --surface:  #053a7a;
+    --surface2: #074798;
+    --border:   rgba(241,255,255,.15);
+    --accent:   #F1FFFF;
+    --accent2:  #60b8ff;
+    --accent3:  #34d399;
+    --danger:   #f87171;
+    --warn:     #fbbf24;
+    --text:     #F1FFFF;
+    --muted:    rgba(241,255,255,.5);
+    --font: 'Syne', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    height: 60px;
+    background: var(--navy-dark);
+    border-bottom: 1px solid var(--white-soft);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+
+  .logo span { color: var(--white-dim); }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: .8rem;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .dot-live {
+    width: 7px; height: 7px;
+    background: var(--accent3);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .3; }
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--navy-dark);
+    border-right: 1px solid var(--white-soft);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    padding: 0 16px 6px;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 20px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    cursor: pointer;
+    font-size: .85rem;
+    color: var(--muted);
+    border-left: 3px solid transparent;
+    transition: all .15s;
+    user-select: none;
+  }
+
+  .nav-item:hover { color: var(--white); background: var(--white-faint); }
+
+  .nav-item.active {
+    color: var(--white);
+    border-left-color: var(--white);
+    background: rgba(241,255,255,.1);
+    font-weight: 600;
+  }
+
+  .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+
+  /* ── MAIN ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  .page { display: none; padding: 28px 32px; }
+  .page.active { display: block; }
+
+  /* ── PAGE HEADER ── */
+  .page-hd {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+  }
+
+  .page-sub {
+    font-size: .8rem;
+    color: var(--muted);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+  }
+
+  .btn-primary { background: var(--white); color: var(--navy); }
+  .btn-primary:hover { background: #d6f0ff; }
+  .btn-secondary { background: rgba(241,255,255,.08); color: var(--white); border: 1px solid var(--white-soft); }
+  .btn-secondary:hover { border-color: var(--white); background: rgba(241,255,255,.15); }
+  .btn-danger { background: rgba(248,113,113,.15); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
+  .btn-danger:hover { background: rgba(248,113,113,.25); }
+  .btn-sm { padding: 5px 12px; font-size: .76rem; }
+
+  /* ── CARDS / STATS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .stat-card.yellow::before { background: var(--white); }
+  .stat-card.blue::before { background: var(--accent2); }
+  .stat-card.green::before { background: var(--accent3); }
+  .stat-card.red::before { background: var(--danger); }
+
+  .stat-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+  .stat-value { font-size: 2rem; font-weight: 800; margin-top: 6px; font-family: var(--mono); }
+  .stat-sub { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+
+  /* ── TABLE ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 22px;
+  }
+
+  .card-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-title { font-size: .9rem; font-weight: 700; }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+  }
+
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .8rem;
+    width: 200px;
+  }
+
+  .search-box input::placeholder { color: var(--muted); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+  }
+
+  thead tr { background: rgba(241,255,255,.04); }
+
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(241,255,255,.06);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(241,255,255,.04); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: 100px;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .badge-green { background: rgba(52,211,153,.2); color: #6effd4; }
+  .badge-yellow { background: rgba(241,255,255,.15); color: var(--white); }
+  .badge-red { background: rgba(248,113,113,.2); color: #fca5a5; }
+  .badge-blue { background: rgba(96,184,255,.2); color: #93d4ff; }
+  .badge-gray { background: rgba(241,255,255,.1); color: var(--muted); }
+
+  /* ── PRIORITY ── */
+  .prio { display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: .8rem; }
+  .prio-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .prio-alta .prio-dot { background: var(--danger); }
+  .prio-alta { color: var(--danger); }
+  .prio-media .prio-dot { background: var(--warn); }
+  .prio-media { color: var(--warn); }
+  .prio-baixa .prio-dot { background: var(--accent3); }
+  .prio-baixa { color: var(--accent3); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4,45,96,.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp .2s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title { font-size: 1rem; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.3rem; }
+  .modal-close:hover { color: var(--white); }
+
+  .modal-body { padding: 24px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-grid.full { grid-template-columns: 1fr; }
+
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.span2 { grid-column: span 2; }
+
+  .form-group label {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: .85rem;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--white); box-shadow: 0 0 0 3px rgba(241,255,255,.1); }
+
+  .form-group select option { background: var(--navy-dark); color: var(--white); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── OS DETAIL ── */
+  .os-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .os-field { display: flex; flex-direction: column; gap: 2px; }
+  .os-field .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
+  .os-field .val { font-size: .88rem; font-family: var(--mono); }
+
+  /* ── EQUIPMENT ── */
+  .eq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .eq-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    transition: border-color .2s;
+    cursor: pointer;
+  }
+
+  .eq-card:hover { border-color: var(--white); box-shadow: 0 4px 20px rgba(7,71,152,.4); }
+
+  .eq-name { font-weight: 700; font-size: .92rem; margin-bottom: 6px; }
+  .eq-sector { font-size: .73rem; color: var(--accent2); font-family: var(--mono); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+
+  .eq-components {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .eq-comp { font-size: .75rem; color: var(--muted); display: flex; gap: 6px; align-items: baseline; }
+  .eq-comp-qty { font-family: var(--mono); color: var(--accent2); font-weight: 600; font-size: .7rem; min-width: 16px; }
+
+  /* ── PLAN TABLE ── */
+  .plan-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: .68rem;
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+
+  .tag-lu  { background: rgba(96,184,255,.2);  color: #93d4ff; }
+  .tag-prm { background: rgba(52,211,153,.2);  color: #6effd4; }
+  .tag-irm { background: rgba(251,191,36,.2);  color: #fde68a; }
+
+  /* ── CHECKLIST ── */
+  .checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .checklist-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .checklist-hd { font-weight: 700; margin-bottom: 12px; font-size: .9rem; }
+  .checklist-type { font-size: .7rem; color: var(--muted); font-family: var(--mono); margin-bottom: 14px; }
+
+  .tool-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(241,255,255,.08);
+    font-size: .8rem;
+  }
+
+  .tool-item:last-child { border-bottom: none; }
+
+  .tool-check {
+    width: 16px; height: 16px;
+    border: 2px solid var(--white-soft);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+
+  .tool-check.checked { background: var(--accent3); border-color: var(--accent3); }
+  .tool-check.checked::after { content: '✓'; color: #042d60; font-size: .65rem; font-weight: 900; }
+
+  .tool-qty { margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: .78rem;
+    color: var(--muted);
+  }
+
+  .pag-btns { display: flex; gap: 6px; }
+
+  .pag-btn {
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: .78rem;
+    font-family: var(--mono);
+  }
+
+  .pag-btn:hover { border-color: var(--white); color: var(--white); }
+  .pag-btn.active { background: var(--white); color: var(--navy); border-color: var(--white); font-weight: 700; }
+
+  /* ── FILTER ROW ── */
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: .8rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .filter-select:focus { border-color: var(--white); }
+  .filter-select option { background: var(--navy-dark); color: var(--white); }
+
+  /* ── EMPTY ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: .85rem;
+  }
+
+  .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+  /* ── DASHBOARD CHARTS ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .chart-title { font-size: .82rem; font-weight: 700; margin-bottom: 16px; }
+
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+
+  .bar-item { display: flex; align-items: center; gap: 10px; }
+  .bar-label { font-size: .75rem; color: var(--muted); width: 90px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+  .bar-val { font-size: .72rem; font-family: var(--mono); color: var(--muted); width: 28px; text-align: right; }
+
+  .pie-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .pie-item { display: flex; align-items: center; gap: 5px; font-size: .75rem; }
+  .pie-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  canvas { width: 100% !important; }
+
+  /* ── SECTOR SELECTOR ── */
+  .setor-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 20px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .setor-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--white);
+    transform: scaleX(0);
+    transition: transform .2s;
+  }
+
+  .setor-card:hover { border-color: var(--white); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(4,45,96,.5); }
+  .setor-card:hover::after { transform: scaleX(1); }
+
+  .setor-card-icon { font-size: 1.8rem; }
+  .setor-card-name { font-weight: 800; font-size: .95rem; letter-spacing: .02em; }
+  .setor-card-count { font-size: .72rem; color: var(--muted); font-family: var(--mono); }
+
+  /* ── CADASTROS TABS ── */
+  .cad-tab {
+    padding: 9px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: .84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    margin-bottom: -1px;
+  }
+
+  .cad-tab:hover { color: var(--white); }
+  .cad-tab.active { color: var(--white); border-bottom-color: var(--white); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 800px) {
+    .sidebar { display: none; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.span2 { grid-column: span 1; }
+    .os-detail { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">PCM<span> Sistema</span></div>
+  <div class="topbar-right">
+    <div class="dot-live"></div>
+    <span id="clock">--:--:--</span>
+    <span>|</span>
+    <span id="today-date">--/--/----</span>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">Visão Geral</div>
+    <div class="nav-item active" onclick="goPage('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+
+    <div class="nav-section">Manutenção</div>
+    <div class="nav-item" onclick="goPage('ordens')">
+      <span class="nav-icon">🔧</span> Ordens de Serviço
+    </div>
+    <div class="nav-item" onclick="goPage('preventiva')">
+      <span class="nav-icon">📅</span> Manutenção Preventiva
+    </div>
+    <div class="nav-item" onclick="goPage('planos')">
+      <span class="nav-icon">📋</span> Planos de Manutenção
+    </div>
+
+    <div class="nav-section">Recursos</div>
+    <div class="nav-item" onclick="goPage('equipamentos')">
+      <span class="nav-icon">⚙️</span> Equipamentos
+    </div>
+    <div class="nav-item" onclick="goPage('ferramentas')">
+      <span class="nav-icon">🗜️</span> Ferramentas
+    </div>
+
+    <div class="nav-section">Administração</div>
+    <div class="nav-item" onclick="goPage('cadastros')">
+      <span class="nav-icon">🗂️</span> Cadastros
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Visão geral do PCM · atualizado em tempo real</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-os')">＋ Nova O.S.</button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">O.S. por Tipo</div>
+          <div class="bar-chart" id="chart-tipo"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">O.S. por Setor</div>
+          <div class="bar-chart" id="chart-setor"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Últimas Ordens de Serviço</span>
+          <button class="btn btn-secondary btn-sm" onclick="goPage('ordens')">Ver todas →</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Data</th><th>Requisitante</th><th>Setor</th><th>Tipo</th><th>Descrição</th><th>Executante</th><th>Status</th><th>Prioridade</th>
+            </tr>
+          </thead>
+          <tbody id="dash-os-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ ORDENS DE SERVIÇO ══ -->
+    <div id="page-ordens" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Ordens de Serviço</div>
+          <div class="page-sub">Registro e controle de todas as intervenções</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-os')">＋ Nova O.S.</button>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="filter-row">
+            <div class="search-box">🔍
+              <input type="text" id="os-search" placeholder="Buscar descrição, setor…" oninput="renderOrdens()">
+            </div>
+            <select class="filter-select" id="os-filter-tipo" onchange="renderOrdens()">
+              <option value="">Todos os tipos</option>
+              <option>Corretiva</option>
+              <option>melhoria</option>
+              <option>Preventiva</option>
+            </select>
+            <select class="filter-select" id="os-filter-status" onchange="renderOrdens()">
+              <option value="">Todos status</option>
+              <option>Concluído</option>
+              <option>Em Aberto</option>
+            </select>
+            <select class="filter-select" id="os-filter-setor" onchange="renderOrdens()">
+              <option value="">Todos setores</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Data</th><th>Requisitante</th><th>Setor</th><th>Tipo</th><th>Natureza</th><th>Descrição</th><th>Executante</th><th>Status</th><th>Prioridade</th><th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="os-tbody"></tbody>
+        </table>
+        <div class="pagination">
+          <span id="os-count-label"></span>
+          <div class="pag-btns" id="os-pages"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PREVENTIVA ══ -->
+    <div id="page-preventiva" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Manutenção Preventiva</div>
+          <div class="page-sub">Planos trimestrais por equipamento</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-prev')">＋ Nova Preventiva</button>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="filter-row">
+            <div class="search-box">🔍
+              <input type="text" id="prev-search" placeholder="Buscar equipamento, componente…" oninput="renderPreventiva()">
+            </div>
+            <select class="filter-select" id="prev-filter-eq" onchange="renderPreventiva()">
+              <option value="">Todos equipamentos</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Equipamento</th><th>Componente</th><th>Trimestre</th><th>Data Planejada</th><th>Data Realizada</th><th>Realizado por</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="prev-tbody"></tbody>
+        </table>
+        <div class="pagination">
+          <span id="prev-count-label"></span>
+          <div class="pag-btns" id="prev-pages"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PLANOS ══ -->
+    <div id="page-planos" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Planos de Manutenção</div>
+          <div class="page-sub">Lubrificação · Preventiva · Inspeção (LU / PRM / IRM)</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-plano')">＋ Novo Item de Plano</button>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="filter-row">
+            <div class="search-box">🔍
+              <input type="text" id="plan-search" placeholder="Buscar equipamento, item…" oninput="renderPlanos()">
+            </div>
+            <select class="filter-select" id="plan-filter-setor" onchange="renderPlanos()">
+              <option value="">Todos setores</option>
+            </select>
+            <select class="filter-select" id="plan-filter-plano" onchange="renderPlanos()">
+              <option value="">Todos planos</option>
+              <option>LU</option>
+              <option>PRM</option>
+              <option>IRM</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Setor</th><th>Equipamento</th><th>Plano</th><th>Item</th><th>Periodicidade</th><th>Qtd</th>
+            </tr>
+          </thead>
+          <tbody id="plan-tbody"></tbody>
+        </table>
+        <div class="pagination">
+          <span id="plan-count-label"></span>
+          <div class="pag-btns" id="plan-pages"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ EQUIPAMENTOS ══ -->
+    <div id="page-equipamentos" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Equipamentos</div>
+          <div class="page-sub">Selecione um setor para ver os equipamentos</div>
+        </div>
+        <button class="btn btn-primary" onclick="goPage('cadastros')">＋ Cadastrar Equipamento</button>
+      </div>
+
+      <!-- Setor selector -->
+      <div id="eq-setor-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px;"></div>
+
+      <!-- Equipment cards (shown after sector selected) -->
+      <div id="eq-detail-panel" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="voltarSetores()">← Voltar</button>
+          <div>
+            <span id="eq-setor-label" style="font-size:1.1rem;font-weight:800;"></span>
+            <span id="eq-setor-count" style="font-size:.78rem;color:var(--muted);margin-left:8px;font-family:var(--mono);"></span>
+          </div>
+          <div style="display:flex;gap:10px;margin-left:auto;align-items:center;">
+            <div class="search-box">🔍
+              <input type="text" id="eq-search" placeholder="Buscar equipamento…" oninput="renderEquipCards()" style="width:180px;">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-cad-equip')">＋ Novo Equipamento</button>
+          </div>
+        </div>
+        <div class="eq-grid" id="eq-grid"></div>
+      </div>
+    </div>
+
+    <!-- ══ FERRAMENTAS ══ -->
+    <div id="page-ferramentas" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Ferramentas</div>
+          <div class="page-sub">Checklist de ferramentas por colaborador</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-secondary" onclick="openModalItem('eletrica')">＋ Ferramenta Elétrica</button>
+          <button class="btn btn-primary" onclick="openModalItem('mecanica')">＋ Ferramenta Mecânica</button>
+        </div>
+      </div>
+
+      <div class="checklist-grid" id="checklist-grid"></div>
+    </div>
+
+    <!-- ══ CADASTROS ══ -->
+    <div id="page-cadastros" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Cadastros</div>
+          <div class="page-sub">Gerencie equipamentos, setores e itens de ferramentas</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0;">
+        <button class="cad-tab active" id="tab-equip" onclick="switchCadTab('equip')">⚙️ Equipamentos</button>
+        <button class="cad-tab" id="tab-itens" onclick="switchCadTab('itens')">🔩 Itens / Ferramentas</button>
+        <button class="cad-tab" id="tab-setores" onclick="switchCadTab('setores')">🏭 Setores</button>
+      </div>
+
+      <!-- TAB: EQUIPAMENTOS -->
+      <div id="cad-equip" class="cad-panel">
+        <div class="card">
+          <div class="card-hd">
+            <span class="card-title">Equipamentos cadastrados</span>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-cad-equip')">＋ Novo Equipamento</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Setor</th><th>Nome</th><th>Componentes</th><th>Ações</th></tr>
+            </thead>
+            <tbody id="cad-equip-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: ITENS -->
+      <div id="cad-itens" class="cad-panel" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+          <!-- Elétrica -->
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">⚡ Ferramentas Elétricas</span>
+              <button class="btn btn-primary btn-sm" onclick="openModalItem('eletrica')">＋ Adicionar</button>
+            </div>
+            <table>
+              <thead><tr><th>Item</th><th>Qtd</th><th></th></tr></thead>
+              <tbody id="cad-eletrica-tbody"></tbody>
+            </table>
+          </div>
+          <!-- Mecânica -->
+          <div class="card">
+            <div class="card-hd">
+              <span class="card-title">🔧 Ferramentas Mecânicas</span>
+              <button class="btn btn-primary btn-sm" onclick="openModalItem('mecanica')">＋ Adicionar</button>
+            </div>
+            <table>
+              <thead><tr><th>Item</th><th>Qtd</th><th></th></tr></thead>
+              <tbody id="cad-mecanica-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: SETORES -->
+      <div id="cad-setores" class="cad-panel" style="display:none;">
+        <div class="card">
+          <div class="card-hd">
+            <span class="card-title">Setores da planta</span>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-cad-setor')">＋ Novo Setor</button>
+          </div>
+          <table>
+            <thead><tr><th>Nome do Setor</th><th>Equipamentos</th><th>Ações</th></tr></thead>
+            <tbody id="cad-setores-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ MODAL NOVA O.S. ══ -->
+<div class="modal-overlay" id="modal-os">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Nova Ordem de Serviço</div>
+      <button class="modal-close" onclick="closeModal('modal-os')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="f-data">
+        </div>
+        <div class="form-group">
+          <label>Hora</label>
+          <input type="time" id="f-hora">
+        </div>
+        <div class="form-group">
+          <label>Requisitante</label>
+          <input type="text" id="f-req" placeholder="Nome">
+        </div>
+        <div class="form-group">
+          <label>Setor</label>
+          <select id="f-setor">
+            <option>Extração</option>
+            <option>Secagem</option>
+            <option>Caldeira</option>
+            <option>Ensaque 2</option>
+            <option>Ensaque 3</option>
+            <option>Poço</option>
+            <option>Oficina</option>
+            <option>Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="f-tipo">
+            <option>Corretiva</option>
+            <option>Preventiva</option>
+            <option>melhoria</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Natureza</label>
+          <select id="f-natureza">
+            <option>Mecânica</option>
+            <option>Elétrica</option>
+            <option>Predial</option>
+            <option>Oficina</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridade</label>
+          <select id="f-prioridade">
+            <option>Alta</option>
+            <option>Média</option>
+            <option>Baixa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Executante</label>
+          <input type="text" id="f-exec" placeholder="Nome">
+        </div>
+        <div class="form-group span2">
+          <label>Descrição da Requisição</label>
+          <textarea id="f-desc" placeholder="Descreva o problema ou serviço…"></textarea>
+        </div>
+        <div class="form-group span2">
+          <label>Serviço Realizado</label>
+          <textarea id="f-realizado" placeholder="O que foi feito? (preencher ao concluir)"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Data Programada</label>
+          <input type="date" id="f-prog">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option>Em Aberto</option>
+            <option>Concluído</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-os')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarOS()">Salvar O.S.</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL DETALHE O.S. ══ -->
+<div class="modal-overlay" id="modal-os-detail">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="detail-title">Ordem de Serviço #—</div>
+      <button class="modal-close" onclick="closeModal('modal-os-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-os-detail')">Fechar</button>
+      <button class="btn btn-danger btn-sm" id="detail-delete-btn">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CADASTRO EQUIPAMENTO ══ -->
+<div class="modal-overlay" id="modal-cad-equip">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-cad-equip-title">Novo Equipamento</div>
+      <button class="modal-close" onclick="closeModal('modal-cad-equip')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ce-edit-idx" value="">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Setor</label>
+          <select id="ce-setor"></select>
+        </div>
+        <div class="form-group">
+          <label>Nome do Equipamento</label>
+          <input type="text" id="ce-nome" placeholder="Ex: Filtro prensa automático">
+        </div>
+        <div class="form-group span2">
+          <label>Componentes <span style="font-weight:400;color:var(--muted)">(um por linha: Qtd × Nome)</span></label>
+          <textarea id="ce-comps" rows="6" placeholder="2 × Rolamentos 22222 KC3&#10;1 × Motor TRIF 5CV&#10;4 × Mancais SN 522"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cad-equip')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEquipamento()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CADASTRO ITEM ══ -->
+<div class="modal-overlay" id="modal-cad-item">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hd">
+      <div class="modal-title">Novo Item</div>
+      <button class="modal-close" onclick="closeModal('modal-cad-item')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ci-tipo" value="">
+      <input type="hidden" id="ci-edit-idx" value="">
+      <div class="form-grid full">
+        <div class="form-group">
+          <label>Nome do Item / Ferramenta</label>
+          <input type="text" id="ci-nome" placeholder="Ex: Alicate Universal 8&quot;">
+        </div>
+        <div class="form-group">
+          <label>Quantidade</label>
+          <input type="number" id="ci-qty" value="1" min="1">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cad-item')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarItem()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CADASTRO SETOR ══ -->
+<div class="modal-overlay" id="modal-cad-setor">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-cad-setor-title">Novo Setor</div>
+      <button class="modal-close" onclick="closeModal('modal-cad-setor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cs-edit-idx" value="">
+      <div class="form-grid full">
+        <div class="form-group">
+          <label>Nome do Setor</label>
+          <input type="text" id="cs-nome" placeholder="Ex: EXTRAÇÃO">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cad-setor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarSetor()">Salvar</button>
+    </div>
+  </div>
+</div>
+<!-- ══ MODAL NOVA PREVENTIVA ══ -->
+<div class="modal-overlay" id="modal-prev">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-hd">
+      <div class="modal-title">Nova Manutenção Preventiva</div>
+      <button class="modal-close" onclick="closeModal('modal-prev')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group span2">
+          <label>Equipamento</label>
+          <input type="text" id="fp-equip" placeholder="Ex: Peneira vibratória">
+        </div>
+        <div class="form-group span2">
+          <label>Componente</label>
+          <input type="text" id="fp-comp" placeholder="Ex: Rolamento LA 22211 EAK">
+        </div>
+        <div class="form-group">
+          <label>Trimestre</label>
+          <select id="fp-trim">
+            <option value="1">1º Trimestre</option>
+            <option value="2">2º Trimestre</option>
+            <option value="3">3º Trimestre</option>
+            <option value="4">4º Trimestre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data Planejada</label>
+          <input type="date" id="fp-planejada">
+        </div>
+        <div class="form-group">
+          <label>Data Realizada</label>
+          <input type="date" id="fp-realizada">
+        </div>
+        <div class="form-group">
+          <label>Realizado por</label>
+          <input type="text" id="fp-exec" placeholder="Ex: Valmir / Luan">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-prev')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPreventiva()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL NOVO ITEM DE PLANO ══ -->
+<div class="modal-overlay" id="modal-plano">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-hd">
+      <div class="modal-title">Novo Item de Plano de Manutenção</div>
+      <button class="modal-close" onclick="closeModal('modal-plano')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Setor</label>
+          <input type="text" id="fpl-setor" placeholder="Ex: EXTRAÇÃO">
+        </div>
+        <div class="form-group">
+          <label>Equipamento</label>
+          <input type="text" id="fpl-equip" placeholder="Ex: Peneira vibratória">
+        </div>
+        <div class="form-group">
+          <label>Tipo de Plano</label>
+          <select id="fpl-plano">
+            <option value="LU">LU — Lubrificação</option>
+            <option value="PRM">PRM — Preventiva</option>
+            <option value="IRM">IRM — Inspeção</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Periodicidade</label>
+          <select id="fpl-period">
+            <option>7 dias</option>
+            <option>14 dias</option>
+            <option>30 dias</option>
+            <option>90 dias</option>
+            <option>180 dias</option>
+            <option>356 dias</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label>Descrição do Item</label>
+          <input type="text" id="fpl-item" placeholder="Ex: Engraxar rolamento LA">
+        </div>
+        <div class="form-group">
+          <label>Quantidade</label>
+          <input type="number" id="fpl-qty" placeholder="—" min="1">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-plano')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPlano()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA — extraído das planilhas
+// ══════════════════════════════════════════
+
+const DB = {
+
+  ordens: [
+    {id:1,data:'2024-07-25',hora:'16:10',req:'Reginaldo',setor:'Secagem',tipo:'Corretiva',natureza:'Predial',desc:'Troca da maçaneta da porta do CCM.',prioridade:'Baixa',dataProg:'2024-07-25',dataConcl:'2024-07-25',realizado:'Retirada e troca da maçaneta danificada por outra nova.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:2,data:'2024-07-25',hora:'19:31',req:'Reginaldo',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca das serrinhas do rolo da cevadeira.',prioridade:'Alta',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada do rolo da cevadeira para troca das serrinhas por empresa terceira, regulado e recolocado pela manutenção.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:3,data:'2024-07-25',hora:'19:29',req:'Reginaldo',setor:'Caldeira',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca das borrachas dos visores do nível de água da caldeira.',prioridade:'Baixa',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca de um vidro, troca das borrachas dos dois visores de nível da caldeira.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:4,data:'2024-07-26',hora:'00:00',req:'Daniel',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da junta do registro de entrada de vapor, forno 1.',prioridade:'Média',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada e troca da junta do registro de vapor do forno 1.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:5,data:'2024-07-26',hora:'05:30',req:'Daniel',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Correção da proteção da rosca da cancha 1.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Correção da proteção da rosca no local.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:6,data:'2024-07-27',hora:'10:43',req:'Reginaldo',setor:'Caldeira',tipo:'Corretiva',natureza:'Predial',desc:'Troca da plataforma da frente da caldeira.',prioridade:'Média',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada da chapa antiga, recolocada chapa nova, corte e solda.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:7,data:'2024-07-27',hora:'10:52',req:'Reginaldo',setor:'Secagem',tipo:'melhoria',natureza:'Mecânica',desc:'Troca da tela da peneira reserva por uma 4mm.',prioridade:'Baixa',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca da tela da peneira reserva do forno 1 por uma 4mm.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:8,data:'2024-07-29',hora:'08:00',req:'Luan',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da junta do nível do forno 1.',prioridade:'Alta',dataProg:'2024-07-29',dataConcl:'2024-07-29',realizado:'Retirada e troca da junta do nível do forno 1.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:9,data:'2024-07-26',hora:'08:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rolamento da peneira do rapador.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Troca de 1 bucha (HE311), 1 bucha (H317) e 1 rolamento (22217).',exec:'Luan / Valmir',status:'Concluído'},
+    {id:10,data:'2024-07-26',hora:'08:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da válvula de ar do inversor das caixas do filtro prensa.',prioridade:'Alta',dataProg:'2024-07-26',dataConcl:'2024-07-26',realizado:'Retirada e troca da válvula de ar do inversor das caixas do filtro prensa.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:11,data:'2024-07-31',hora:'08:00',req:'Luan',setor:'Caldeira',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca da junta da válvula de retorno do vapor.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca da junta da válvula de retorno do vapor.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:12,data:'2024-07-30',hora:'17:00',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rolamento do redutor da caixa dosadeira da cevadeira.',prioridade:'Alta',dataProg:'2024-07-30',dataConcl:'2024-07-30',realizado:'Retirada e troca do rolamento (UC211-32) do redutor da caixa dosadeira da cevadeira.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:13,data:'2024-07-31',hora:'17:30',req:'Luan',setor:'Secagem',tipo:'Corretiva',natureza:'Mecânica',desc:'Trocar junta do flange do sensor de temperatura.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca da junta do flange do sensor de temperatura.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:14,data:'2024-08-01',hora:'08:00',req:'Luan',setor:'Ensaque 2',tipo:'melhoria',natureza:'Oficina',desc:'Colocar chapa de inox onde está desfazendo as peneiras.',prioridade:'Baixa',dataProg:'2024-08-01',dataConcl:'2024-08-01',realizado:'Foi aplicada chapa de inox onde estava desfazendo as peneiras.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:15,data:'2024-07-31',hora:'07:30',req:'Luan',setor:'Extração',tipo:'Corretiva',natureza:'Mecânica',desc:'Troca do rolo da cevadeira.',prioridade:'Alta',dataProg:'2024-07-31',dataConcl:'2024-07-31',realizado:'Retirada e troca do rolo da cevadeira, parada de processo 06:00 às 11:00.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:16,data:'2024-08-03',hora:'10:33',req:'Eduardo',setor:'Extração',tipo:'Corretiva',natureza:'Predial',desc:'Quadro de ferramentas à vista, confeccionar novo quadro em chapa.',prioridade:'Média',dataProg:'2024-08-15',dataConcl:null,realizado:null,exec:null,status:'Em Aberto'},
+    {id:17,data:'2024-08-03',hora:'10:36',req:'Eduardo',setor:'Ensaque 3',tipo:'melhoria',natureza:'Predial',desc:'Instalar utensílio e suporte de vassouras e rodo no setor.',prioridade:'Média',dataProg:'2024-08-06',dataConcl:'2024-08-06',realizado:'Foi instalado o suporte e utensílios do setor.',exec:'Valmir / Luan',status:'Concluído'},
+    {id:18,data:'2024-08-03',hora:'10:37',req:'Eduardo',setor:'Poço',tipo:'melhoria',natureza:'Predial',desc:'Instalar abrigo no poço de água potável conforme projeto enviado.',prioridade:'Alta',dataProg:null,dataConcl:null,realizado:null,exec:null,status:'Em Aberto'},
+  ],
+
+  equipamentos: [
+    {setor:'EXTRAÇÃO',nome:'Rosca transportadora de mandioca',componentes:[{qty:2,nome:'Mancais F 215'},{qty:2,nome:'Rolamentos UC 215 Eixo 3"'},{qty:1,nome:'Moto Redutor GD50 1×31,25 – 5 CV 4P'}]},
+    {setor:'EXTRAÇÃO',nome:'Pré lavador de mandioca',componentes:[{qty:2,nome:'Mancais SN 522 MDS'},{qty:2,nome:'Rolamentos 22222 KC3'},{qty:2,nome:'Buchas H 322'},{qty:1,nome:'Redutor Planetario PG2503 + Motor 20 CV'}]},
+    {setor:'EXTRAÇÃO',nome:'Lavador de mandioca',componentes:[{qty:2,nome:'Mancais SN 522 MDS'},{qty:2,nome:'Rolamentos 22222 KC3'},{qty:2,nome:'Buchas H 322'},{qty:1,nome:'Redutor Brevini ET3250 + Motor 25 CV'}]},
+    {setor:'EXTRAÇÃO',nome:'Peneira de separação / reaproveitamento de água',componentes:[{qty:1,nome:'Motor Trifásico 5 CV'},{qty:2,nome:'Rolamentos'}]},
+    {setor:'EXTRAÇÃO',nome:'Picador de mandioca',componentes:[{qty:1,nome:'Motor Trifásico IP55'},{qty:2,nome:'Mancais'},{qty:1,nome:'Conjunto de facas'}]},
+    {setor:'EXTRAÇÃO',nome:'Cevadeira rotor Ø800 mm',componentes:[{qty:1,nome:'Rolo cevadeira c/ serrinhas'},{qty:1,nome:'Redutor caixa dosadeira + Rolamento UC211-32'},{qty:1,nome:'Motor Trifásico'}]},
+    {setor:'EXTRAÇÃO',nome:'Filtro prensa automático 40 placas',componentes:[{qty:1,nome:'Inversores de ar (válvulas)'},{qty:2,nome:'Bombas de carregamento'},{qty:1,nome:'Tanque pulmão'}]},
+    {setor:'SECAGEM',nome:'Forno contínuo a vapor (2x)',componentes:[{qty:2,nome:'Sensores de temperatura (flange)'},{qty:2,nome:'Registro de entrada de vapor'},{qty:4,nome:'Juntas e vedações'}]},
+    {setor:'SECAGEM',nome:'Peneira vibratória (2x)',componentes:[{qty:3,nome:'Rolamentos LA 22211 EAK'},{qty:3,nome:'Buchas HE 311'},{qty:1,nome:'Rolamento LOA 22217 EAK'},{qty:2,nome:'Amortecedores de haste'}]},
+    {setor:'CALDEIRA',nome:'Caldeira a vapor',componentes:[{qty:2,nome:'Visores de nível de água + borrachas'},{qty:1,nome:'Válvula de retorno de vapor'},{qty:1,nome:'Plataforma frontal (chapa)'}]},
+    {setor:'ENSAQUE',nome:'Ensacadeira para envase (válvula)',componentes:[{qty:1,nome:'Motor'},{qty:2,nome:'Correias'},{qty:2,nome:'Rolamentos'}]},
+  ],
+
+  preventiva: [
+    {equip:'Rosca transportadora (Descarga)',comp:'Mancal F 213',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora (Descarga)',comp:'Rolamento UC 213 Eixo 2.1-2"',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora (Descarga)',comp:'Correias B88 Dentada',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora (Descarga)',comp:'Motor TRIF 5 CV 6P',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora (Descarga)',comp:'Selo Mecânico T01 2.1-4" Viton',trim:'4º',planejada:'2024-11-18',realizada:'2024-11-18',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandioca',comp:'Mancais F 215',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandioca',comp:'Rolamentos UC 215 Eixo 3"',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Rosca transportadora de mandioca',comp:'Moto Redutor GD50 – 5 CV',trim:'4º',planejada:'2024-10-07',realizada:'2024-10-07',exec:'Valmir / Luan'},
+    {equip:'Pré Lavador de Mandioca',comp:'Mancais SN 522 MDS',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
+    {equip:'Pré Lavador de Mandioca',comp:'Rolamentos 22222 KC3',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
+    {equip:'Lavador de Mandioca',comp:'Mancais SN 522 MDS',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
+    {equip:'Lavador de Mandioca',comp:'Rolamentos 22222 KC3',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
+    {equip:'Peneira vibratória',comp:'Rolamento LA 22211 EAK (3x)',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
+    {equip:'Peneira vibratória',comp:'Bucha HE 311 (3x)',trim:'1º',planejada:'2025-03-01',realizada:null,exec:null},
+    {equip:'Cevadeira rotor Ø800 mm',comp:'Rolo da cevadeira + serrinhas',trim:'2º',planejada:'2025-05-01',realizada:null,exec:null},
+    {equip:'Filtro prensa automático',comp:'Válvulas de ar dos inversores',trim:'2º',planejada:'2025-05-01',realizada:null,exec:null},
+    {equip:'Forno contínuo a vapor',comp:'Sensor de temperatura (flange)',trim:'2º',planejada:'2025-05-01',realizada:null,exec:null},
+    {equip:'Forno contínuo a vapor',comp:'Registros e juntas de vapor',trim:'3º',planejada:'2025-08-01',realizada:null,exec:null},
+  ],
+
+  planos: [
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento LA',period:'30 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento LOA 1',period:'30 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento LOA 2',period:'30 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'LU',item:'Engraxar rolamento central',period:'30 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar rolamento LA 22211 EAK – 3 un.',period:'356 dias',qty:3},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar bucha HE 311 – 3 un.',period:'356 dias',qty:3},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar rolamento LA 22217 EAK',period:'356 dias',qty:1},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar bucha HE 317',period:'356 dias',qty:1},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'PRM',item:'Trocar amortecedor da haste de vibração – 2 un.',period:'356 dias',qty:2},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar trincas na estrutura',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar temperatura',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar ruído',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Mancal P511 – verificar vibração',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Rolamento LA 22211 EAK – verificar ruído',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Peneira vibratória',plano:'IRM',item:'Rolamento LA 22211 EAK – verificar desgaste',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800',plano:'LU',item:'Lubrificar rolamentos externos',period:'30 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800',plano:'PRM',item:'Trocar serrinhas do rolo',period:'180 dias',qty:1},
+    {setor:'EXTRAÇÃO',equip:'Cevadeira rotor Ø800',plano:'IRM',item:'Verificar tensão das correias',period:'14 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Filtro prensa auto.',plano:'LU',item:'Lubrificar guias das placas',period:'30 dias',qty:null},
+    {setor:'EXTRAÇÃO',equip:'Filtro prensa auto.',plano:'IRM',item:'Verificar válvulas de ar dos inversores',period:'14 dias',qty:null},
+    {setor:'SECAGEM',equip:'Forno contínuo vapor',plano:'LU',item:'Lubrificar rolamentos da corrente',period:'30 dias',qty:null},
+    {setor:'SECAGEM',equip:'Forno contínuo vapor',plano:'PRM',item:'Trocar juntas e vedações de vapor',period:'180 dias',qty:4},
+    {setor:'SECAGEM',equip:'Forno contínuo vapor',plano:'IRM',item:'Verificar sensor de temperatura (flange)',period:'14 dias',qty:null},
+    {setor:'SECAGEM',equip:'Peneira vibratória',plano:'LU',item:'Engraxar mancais da peneira',period:'30 dias',qty:null},
+    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'LU',item:'Lubrificar gaxetas e registros',period:'30 dias',qty:null},
+    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'IRM',item:'Verificar nível de água (visores)',period:'7 dias',qty:null},
+    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'IRM',item:'Verificar pressão de trabalho',period:'7 dias',qty:null},
+    {setor:'CALDEIRA',equip:'Caldeira a vapor',plano:'PRM',item:'Limpeza dos tubos internos',period:'180 dias',qty:null},
+  ],
+
+  ferramentasEletrica: [
+    {nome:'Alicate Universal 8" c/ prensa terminal',qty:1},
+    {nome:'Alicate de Bico Meia Cana isolado 5"',qty:1},
+    {nome:'Alicate de Corte Diagonal',qty:1},
+    {nome:'Alicate de Pressão 8"',qty:1},
+    {nome:'Chave Canhão 10mm',qty:1},
+    {nome:'Chave Canhão 08mm',qty:1},
+    {nome:'Chave Canhão 07mm',qty:1},
+    {nome:'Chave Canhão 06mm',qty:1},
+    {nome:'Chave Combinada 06mm',qty:1},
+    {nome:'Chave Combinada 08mm',qty:1},
+    {nome:'Multímetro digital',qty:1},
+    {nome:'Lanterna profissional',qty:1},
+    {nome:'Fita isolante 20m',qty:2},
+    {nome:'Chave de Fenda 6" plana',qty:1},
+    {nome:'Chave Phillips n°2',qty:1},
+  ],
+
+  ferramentasMecanica: [
+    {nome:'Jogo Allen polegada',qty:1},
+    {nome:'Alicate Universal 8"',qty:1},
+    {nome:'Alicate de Bico Reto 5"',qty:1},
+    {nome:'Alicate de Pressão 8"',qty:1},
+    {nome:'Chave Biela 10mm',qty:1},
+    {nome:'Chave Biela 13mm',qty:1},
+    {nome:'Chave Biela 19mm',qty:1},
+    {nome:'Chave Combinada 06mm',qty:2},
+    {nome:'Chave Combinada 07mm',qty:2},
+    {nome:'Chave Combinada 08mm',qty:2},
+    {nome:'Chave Combinada 10mm',qty:2},
+    {nome:'Chave Combinada 13mm',qty:2},
+    {nome:'Marreta 1kg',qty:1},
+    {nome:'Extrator de rolamento',qty:1},
+    {nome:'Torquímetro',qty:1},
+    {nome:'Paquímetro digital',qty:1},
+  ],
+};
+
+// localStorage para persistência
+const STORAGE_KEY = 'pcm_ordens_extra';
+let ordensExtras = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+function allOrdens() { return [...DB.ordens, ...ordensExtras]; }
+
+// ══════════════════════════════════════════
+// PAGINAÇÃO
+// ══════════════════════════════════════════
+const PAGE_SIZE = 12;
+let osPage = 1, prevPage = 1, planPage = 1;
+
+// ══════════════════════════════════════════
+// RELÓGIO
+// ══════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('pt-BR');
+  document.getElementById('today-date').textContent =
+    now.toLocaleDateString('pt-BR');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ══════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(id)) {
+      n.classList.add('active');
+    }
+  });
+  // Render on navigate
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'ordens') { osPage = 1; renderOrdens(); }
+  if (id === 'preventiva') { prevPage = 1; renderPreventiva(); }
+  if (id === 'planos') { planPage = 1; renderPlanos(); }
+  if (id === 'equipamentos') renderEquipamentos();
+  if (id === 'ferramentas') renderFerramentas();
+  if (id === 'cadastros') { switchCadTab('equip'); }
+}
+
+// ══════════════════════════════════════════
+// SALVAR O.S.
+// ══════════════════════════════════════════
+function salvarOS() {
+  const ordens = allOrdens();
+  const maxId = ordens.reduce((m, o) => Math.max(m, o.id), 0);
+  const nova = {
+    id: maxId + 1,
+    data: document.getElementById('f-data').value,
+    hora: document.getElementById('f-hora').value,
+    req: document.getElementById('f-req').value || '—',
+    setor: document.getElementById('f-setor').value,
+    tipo: document.getElementById('f-tipo').value,
+    natureza: document.getElementById('f-natureza').value,
+    desc: document.getElementById('f-desc').value || '—',
+    prioridade: document.getElementById('f-prioridade').value,
+    dataProg: document.getElementById('f-prog').value || null,
+    dataConcl: document.getElementById('f-status').value === 'Concluído' ? new Date().toISOString().split('T')[0] : null,
+    realizado: document.getElementById('f-realizado').value || null,
+    exec: document.getElementById('f-exec').value || null,
+    status: document.getElementById('f-status').value,
+  };
+  ordensExtras.push(nova);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(ordensExtras));
+  closeModal('modal-os');
+  renderDashboard();
+  renderOrdens();
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard() {
+  const ordens = allOrdens();
+  const total = ordens.length;
+  const abertas = ordens.filter(o => o.status === 'Em Aberto').length;
+  const concluidas = ordens.filter(o => o.status === 'Concluído').length;
+  const alta = ordens.filter(o => o.prioridade === 'Alta').length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card yellow">
+      <div class="stat-label">Total O.S.</div>
+      <div class="stat-value" style="color:var(--accent)">${total}</div>
+      <div class="stat-sub">desde o início</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Em Aberto</div>
+      <div class="stat-value" style="color:var(--danger)">${abertas}</div>
+      <div class="stat-sub">aguardando execução</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Concluídas</div>
+      <div class="stat-value" style="color:var(--accent3)">${concluidas}</div>
+      <div class="stat-sub">${Math.round(concluidas/total*100)}% de conclusão</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Alta Prioridade</div>
+      <div class="stat-value" style="color:var(--accent2)">${alta}</div>
+      <div class="stat-sub">atenção imediata</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Equipamentos</div>
+      <div class="stat-value" style="color:var(--accent)">${DB.equipamentos.length}</div>
+      <div class="stat-sub">cadastrados</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Planos Ativos</div>
+      <div class="stat-value" style="color:var(--accent2)">${DB.planos.length}</div>
+      <div class="stat-sub">itens de manutenção</div>
+    </div>
+  `;
+
+  // Chart tipo
+  const tipos = {};
+  ordens.forEach(o => { tipos[o.tipo] = (tipos[o.tipo]||0)+1; });
+  const maxTipo = Math.max(...Object.values(tipos));
+  const colors = { 'Corretiva': '#f87171', 'melhoria': '#60b8ff', 'Preventiva': '#34d399' };
+  document.getElementById('chart-tipo').innerHTML = Object.entries(tipos).map(([k,v]) =>
+    `<div class="bar-item">
+      <div class="bar-label">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxTipo*100)}%;background:${colors[k]||'#F1FFFF'}"></div></div>
+      <div class="bar-val">${v}</div>
+    </div>`
+  ).join('');
+
+  // Chart setor
+  const setores = {};
+  ordens.forEach(o => { setores[o.setor.trim()] = (setores[o.setor.trim()]||0)+1; });
+  const maxSet = Math.max(...Object.values(setores));
+  const setColors = ['#F1FFFF','#60b8ff','#34d399','#f87171','#a78bfa','#38bdf8'];
+  let si = 0;
+  document.getElementById('chart-setor').innerHTML = Object.entries(setores)
+    .sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v]) =>
+    `<div class="bar-item">
+      <div class="bar-label">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxSet*100)}%;background:${setColors[si++%setColors.length]}"></div></div>
+      <div class="bar-val">${v}</div>
+    </div>`
+  ).join('');
+
+  // Últimas O.S.
+  const recentes = [...ordens].sort((a,b) => b.id - a.id).slice(0, 8);
+  document.getElementById('dash-os-tbody').innerHTML = recentes.map(o => dashRow(o)).join('');
+}
+
+// ══════════════════════════════════════════
+// ORDENS
+// ══════════════════════════════════════════
+function osFiltered() {
+  const q = (document.getElementById('os-search')?.value || '').toLowerCase();
+  const tipo = document.getElementById('os-filter-tipo')?.value || '';
+  const status = document.getElementById('os-filter-status')?.value || '';
+  const setor = document.getElementById('os-filter-setor')?.value || '';
+  return allOrdens().filter(o => {
+    const match = !q || o.desc.toLowerCase().includes(q) || o.setor.toLowerCase().includes(q) || o.req.toLowerCase().includes(q);
+    const matchTipo = !tipo || o.tipo === tipo;
+    const matchStatus = !status || o.status === status;
+    const matchSetor = !setor || o.setor.trim() === setor;
+    return match && matchTipo && matchStatus && matchSetor;
+  }).sort((a,b) => b.id - a.id);
+}
+
+function renderOrdens() {
+  // populate setor filter
+  const setorSel = document.getElementById('os-filter-setor');
+  if (setorSel && setorSel.children.length < 2) {
+    const setores = [...new Set(allOrdens().map(o => o.setor.trim()))].sort();
+    setores.forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; setorSel.appendChild(opt); });
+  }
+
+  const data = osFiltered();
+  const total = data.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (osPage > pages) osPage = 1;
+  const slice = data.slice((osPage-1)*PAGE_SIZE, osPage*PAGE_SIZE);
+
+  document.getElementById('os-tbody').innerHTML = slice.map(o => osRow(o, true)).join('');
+  document.getElementById('os-count-label').textContent = `${total} registros`;
+  renderPagination('os-pages', pages, osPage, p => { osPage=p; renderOrdens(); });
+}
+
+function dashRow(o) {
+  const statusBadge = o.status === 'Concluído'
+    ? '<span class="badge badge-green">✓ Concluído</span>'
+    : '<span class="badge badge-red">● Em Aberto</span>';
+  const pClass = o.prioridade === 'Alta' ? 'prio-alta' : o.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
+  const dataFmt = o.data ? o.data.split('-').reverse().join('/') : '—';
+  return `<tr style="cursor:pointer" onclick="openDetail(${o.id})">
+    <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
+    <td style="font-family:var(--mono);font-size:.75rem">${dataFmt}</td>
+    <td style="font-size:.82rem">${o.req}</td>
+    <td><span style="color:var(--accent);font-size:.75rem;font-weight:700">${o.setor.trim()}</span></td>
+    <td><span class="badge ${o.tipo==='Corretiva'?'badge-red':o.tipo==='melhoria'?'badge-blue':'badge-green'}">${o.tipo}</span></td>
+    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem">${o.desc}</td>
+    <td style="font-size:.78rem">${o.exec||'—'}</td>
+    <td>${statusBadge}</td>
+    <td><div class="prio ${pClass}"><div class="prio-dot"></div>${o.prioridade}</div></td>
+  </tr>`;
+}
+
+function osRow(o, withAction=false) {
+  const statusBadge = o.status === 'Concluído'
+    ? '<span class="badge badge-green">✓ Concluído</span>'
+    : '<span class="badge badge-red">● Em Aberto</span>';
+  const pClass = o.prioridade === 'Alta' ? 'prio-alta' : o.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
+  const dataFmt = o.data ? o.data.split('-').reverse().join('/') : '—';
+  const action = withAction ? `<td><button class="btn btn-secondary btn-sm" onclick="openDetail(${o.id})">Ver</button></td>` : '';
+  return `<tr>
+    <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
+    <td style="font-family:var(--mono);font-size:.75rem">${dataFmt}</td>
+    <td>${o.req}</td>
+    <td><span style="color:var(--accent);font-size:.75rem;font-weight:700">${o.setor.trim()}</span></td>
+    <td><span class="badge ${o.tipo==='Corretiva'?'badge-red':o.tipo==='melhoria'?'badge-blue':'badge-green'}">${o.tipo}</span></td>
+    <td style="color:var(--muted);font-size:.78rem">${o.natureza}</td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.desc}</td>
+    <td style="font-size:.78rem">${o.exec||'—'}</td>
+    <td>${statusBadge}</td>
+    <td><div class="prio ${pClass}"><div class="prio-dot"></div>${o.prioridade}</div></td>
+    ${action}
+  </tr>`;
+}
+
+function openDetail(id) {
+  const o = allOrdens().find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('detail-title').textContent = `Ordem de Serviço #${o.id}`;
+  document.getElementById('detail-body').innerHTML = `
+    <div class="os-detail">
+      <div class="os-field"><span class="lbl">Data</span><span class="val">${o.data||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Hora</span><span class="val">${o.hora||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Requisitante</span><span class="val">${o.req}</span></div>
+      <div class="os-field"><span class="lbl">Setor</span><span class="val">${o.setor.trim()}</span></div>
+      <div class="os-field"><span class="lbl">Tipo</span><span class="val">${o.tipo}</span></div>
+      <div class="os-field"><span class="lbl">Natureza</span><span class="val">${o.natureza}</span></div>
+      <div class="os-field"><span class="lbl">Prioridade</span><span class="val">${o.prioridade}</span></div>
+      <div class="os-field"><span class="lbl">Status</span><span class="val">${o.status}</span></div>
+      <div class="os-field"><span class="lbl">Data Programada</span><span class="val">${o.dataProg||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Data Conclusão</span><span class="val">${o.dataConcl||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Executante</span><span class="val">${o.exec||'—'}</span></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Descrição</div>
+      <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:.85rem">${o.desc}</div>
+    </div>
+    ${o.realizado ? `<div>
+      <div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Serviço Realizado</div>
+      <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">${o.realizado}</div>
+    </div>` : ''}
+  `;
+  // delete only for extras
+  const delBtn = document.getElementById('detail-delete-btn');
+  const isExtra = ordensExtras.some(x => x.id === id);
+  delBtn.style.display = isExtra ? 'inline-flex' : 'none';
+  delBtn.onclick = () => {
+    ordensExtras = ordensExtras.filter(x => x.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ordensExtras));
+    closeModal('modal-os-detail');
+    renderDashboard();
+    renderOrdens();
+  };
+  openModal('modal-os-detail');
+}
+
+// ══════════════════════════════════════════
+// PREVENTIVA
+// ══════════════════════════════════════════
+function allPreventiva() {
+  const extras = JSON.parse(localStorage.getItem('pcm_preventiva_extra') || '[]');
+  return [...DB.preventiva, ...extras];
+}
+
+function salvarPreventiva() {
+  const equip = document.getElementById('fp-equip').value.trim();
+  const comp  = document.getElementById('fp-comp').value.trim();
+  if (!equip || !comp) { alert('Preencha equipamento e componente.'); return; }
+  const novo = {
+    equip,
+    comp,
+    trim: document.getElementById('fp-trim').value,
+    planejada: document.getElementById('fp-planejada').value || null,
+    realizada: document.getElementById('fp-realizada').value || null,
+    exec: document.getElementById('fp-exec').value.trim() || null,
+  };
+  const extras = JSON.parse(localStorage.getItem('pcm_preventiva_extra') || '[]');
+  extras.push(novo);
+  localStorage.setItem('pcm_preventiva_extra', JSON.stringify(extras));
+  closeModal('modal-prev');
+  ['fp-equip','fp-comp','fp-planejada','fp-realizada','fp-exec'].forEach(id => document.getElementById(id).value = '');
+  renderPreventiva();
+}
+
+function renderPreventiva() {
+  const eqSel = document.getElementById('prev-filter-eq');
+  if (eqSel && eqSel.children.length < 2) {
+    const eqs = [...new Set(allPreventiva().map(p => p.equip))].sort();
+    eqs.forEach(e => { const o = document.createElement('option'); o.value = e; o.textContent = e; eqSel.appendChild(o); });
+  }
+
+  const q = (document.getElementById('prev-search')?.value || '').toLowerCase();
+  const eq = document.getElementById('prev-filter-eq')?.value || '';
+
+  const data = allPreventiva().filter(p => {
+    const match = !q || p.equip.toLowerCase().includes(q) || p.comp.toLowerCase().includes(q);
+    const matchEq = !eq || p.equip === eq;
+    return match && matchEq;
+  });
+
+  const total = data.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (prevPage > pages) prevPage = 1;
+  const slice = data.slice((prevPage-1)*PAGE_SIZE, prevPage*PAGE_SIZE);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  document.getElementById('prev-tbody').innerHTML = slice.map(p => {
+    const done = !!p.realizada;
+    const late = !done && p.planejada && p.planejada < today;
+    const status = done
+      ? '<span class="badge badge-green">✓ Realizado</span>'
+      : late
+        ? '<span class="badge badge-red">⚠ Atrasado</span>'
+        : '<span class="badge badge-yellow">Pendente</span>';
+    return `<tr>
+      <td style="font-weight:600;font-size:.82rem">${p.equip}</td>
+      <td style="font-size:.8rem;color:var(--muted)">${p.comp}</td>
+      <td><span class="badge badge-gray">${p.trim}º Trim.</span></td>
+      <td style="font-family:var(--mono);font-size:.78rem">${p.planejada||'—'}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${p.realizada||'—'}</td>
+      <td style="font-size:.78rem">${p.exec||'—'}</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('prev-count-label').textContent = `${total} registros`;
+  renderPagination('prev-pages', pages, prevPage, p => { prevPage=p; renderPreventiva(); });
+}
+
+// ══════════════════════════════════════════
+// PLANOS
+// ══════════════════════════════════════════
+function allPlanos() {
+  const extras = JSON.parse(localStorage.getItem('pcm_planos_extra') || '[]');
+  return [...DB.planos, ...extras];
+}
+
+function salvarPlano() {
+  const setor = document.getElementById('fpl-setor').value.trim().toUpperCase();
+  const equip = document.getElementById('fpl-equip').value.trim();
+  const item  = document.getElementById('fpl-item').value.trim();
+  if (!setor || !equip || !item) { alert('Preencha setor, equipamento e descrição do item.'); return; }
+  const novo = {
+    setor,
+    equip,
+    plano: document.getElementById('fpl-plano').value,
+    item,
+    period: document.getElementById('fpl-period').value,
+    qty: parseInt(document.getElementById('fpl-qty').value) || null,
+  };
+  const extras = JSON.parse(localStorage.getItem('pcm_planos_extra') || '[]');
+  extras.push(novo);
+  localStorage.setItem('pcm_planos_extra', JSON.stringify(extras));
+  closeModal('modal-plano');
+  ['fpl-setor','fpl-equip','fpl-item','fpl-qty'].forEach(id => document.getElementById(id).value = '');
+  renderPlanos();
+}
+
+function renderPlanos() {
+  const setorSel = document.getElementById('plan-filter-setor');
+  if (setorSel && setorSel.children.length < 2) {
+    const setores = [...new Set(allPlanos().map(p => p.setor))].sort();
+    setores.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; setorSel.appendChild(o); });
+  }
+
+  const q = (document.getElementById('plan-search')?.value || '').toLowerCase();
+  const setor = document.getElementById('plan-filter-setor')?.value || '';
+  const plano = document.getElementById('plan-filter-plano')?.value || '';
+
+  const data = allPlanos().filter(p => {
+    const match = !q || p.equip.toLowerCase().includes(q) || p.item.toLowerCase().includes(q);
+    const matchS = !setor || p.setor === setor;
+    const matchP = !plano || p.plano === plano;
+    return match && matchS && matchP;
+  });
+
+  const total = data.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (planPage > pages) planPage = 1;
+  const slice = data.slice((planPage-1)*PAGE_SIZE, planPage*PAGE_SIZE);
+
+  const tagClass = { LU: 'tag-lu', PRM: 'tag-prm', IRM: 'tag-irm' };
+
+  document.getElementById('plan-tbody').innerHTML = slice.map(p => `<tr>
+    <td style="color:var(--accent);font-size:.78rem;font-weight:700">${p.setor}</td>
+    <td style="font-weight:600;font-size:.82rem">${p.equip}</td>
+    <td><span class="plan-tag ${tagClass[p.plano]||''}">${p.plano}</span></td>
+    <td style="font-size:.8rem">${p.item}</td>
+    <td style="font-family:var(--mono);font-size:.78rem;color:var(--accent2)">${p.period}</td>
+    <td style="font-family:var(--mono);font-size:.78rem">${p.qty||'—'}</td>
+  </tr>`).join('');
+
+  document.getElementById('plan-count-label').textContent = `${total} registros`;
+  renderPagination('plan-pages', pages, planPage, p => { planPage=p; renderPlanos(); });
+}
+
+// ══════════════════════════════════════════
+// EQUIPAMENTOS — SETOR → CARDS
+// ══════════════════════════════════════════
+let selectedSetor = null;
+
+function allEquipamentos() {
+  const extras = JSON.parse(localStorage.getItem('pcm_equipamentos_extra') || '[]');
+  return [...DB.equipamentos, ...extras];
+}
+
+function allSetores() {
+  const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
+  const fromEquip = [...new Set(allEquipamentos().map(e => e.setor.trim().toUpperCase()))];
+  const base = ['EXTRAÇÃO','SECAGEM','CALDEIRA','ENSAQUE','OFICINA','POÇO'];
+  const merged = [...new Set([...base, ...fromEquip, ...extras.map(s=>s.nome.toUpperCase())])].sort();
+  return merged;
+}
+
+const SETOR_ICONS = {
+  'EXTRAÇÃO':'🌿','SECAGEM':'🔥','CALDEIRA':'♨️','ENSAQUE':'📦',
+  'ENSAQUE 2':'📦','ENSAQUE 3':'📦','OFICINA':'🛠️','POÇO':'💧',
+};
+function setorIcon(s) { return SETOR_ICONS[s] || '🏭'; }
+
+function renderEquipamentos() {
+  selectedSetor = null;
+  document.getElementById('eq-setor-grid').style.display = 'grid';
+  document.getElementById('eq-detail-panel').style.display = 'none';
+
+  const setores = allSetores();
+  const equips = allEquipamentos();
+
+  document.getElementById('eq-setor-grid').innerHTML = setores.map(s => {
+    const count = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
+    return `
+      <div class="setor-card" onclick="selectSetor('${s}')">
+        <div class="setor-card-icon">${setorIcon(s)}</div>
+        <div class="setor-card-name">${s}</div>
+        <div class="setor-card-count">${count} equipamento${count !== 1 ? 's' : ''}</div>
+      </div>`;
+  }).join('');
+}
+
+function selectSetor(setor) {
+  selectedSetor = setor;
+  document.getElementById('eq-setor-grid').style.display = 'none';
+  document.getElementById('eq-detail-panel').style.display = 'block';
+  document.getElementById('eq-setor-label').textContent = setor;
+  document.getElementById('eq-search').value = '';
+  renderEquipCards();
+}
+
+function voltarSetores() {
+  selectedSetor = null;
+  document.getElementById('eq-setor-grid').style.display = 'grid';
+  document.getElementById('eq-detail-panel').style.display = 'none';
+}
+
+function renderEquipCards() {
+  const q = (document.getElementById('eq-search')?.value || '').toLowerCase();
+  const equips = allEquipamentos().filter(e => {
+    const matchSetor = e.setor.trim().toUpperCase() === selectedSetor;
+    const matchQ = !q || e.nome.toLowerCase().includes(q);
+    return matchSetor && matchQ;
+  });
+
+  document.getElementById('eq-setor-count').textContent = `${equips.length} equipamento(s)`;
+
+  document.getElementById('eq-grid').innerHTML = equips.length ? equips.map(e => `
+    <div class="eq-card">
+      <div class="eq-sector">${e.setor}</div>
+      <div class="eq-name">${e.nome}</div>
+      <div style="font-size:.72rem;color:var(--muted)">${e.componentes.length} componente(s)</div>
+      <div class="eq-components">
+        ${e.componentes.map(c => `
+          <div class="eq-comp">
+            <span class="eq-comp-qty">${c.qty}×</span>
+            <span>${c.nome}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') : '<div class="empty"><div class="empty-icon">⚙️</div>Nenhum equipamento neste setor.</div>';
+}
+
+// ══════════════════════════════════════════
+// FERRAMENTAS
+// ══════════════════════════════════════════
+function allFerretasEletrica() {
+  const extras = JSON.parse(localStorage.getItem('pcm_ferramentas_eletrica') || '[]');
+  return [...DB.ferramentasEletrica, ...extras];
+}
+function allFerretasMecanica() {
+  const extras = JSON.parse(localStorage.getItem('pcm_ferramentas_mecanica') || '[]');
+  return [...DB.ferramentasMecanica, ...extras];
+}
+
+function renderFerramentas() {
+  const checkState = JSON.parse(localStorage.getItem('pcm_check_state') || '{}');
+
+  function buildCard(title, type, items) {
+    const total = items.length;
+    const checked = items.filter((_, i) => checkState[`${type}_${i}`]).length;
+    return `
+      <div class="checklist-card">
+        <div class="checklist-hd">${title}</div>
+        <div class="checklist-type">${type.toUpperCase()} · ${checked}/${total} verificados</div>
+        <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:14px">
+          <div style="height:100%;width:${Math.round(total?checked/total*100:0)}%;background:var(--accent3);border-radius:2px;transition:width .3s"></div>
+        </div>
+        ${items.map((f, i) => `
+          <div class="tool-item">
+            <div class="tool-check ${checkState[`${type}_${i}`] ? 'checked' : ''}" onclick="(function(){
+              const s=JSON.parse(localStorage.getItem('pcm_check_state')||'{}');
+              s['${type}_${i}']=!s['${type}_${i}'];
+              localStorage.setItem('pcm_check_state',JSON.stringify(s));
+              renderFerramentas();
+            })()"></div>
+            <span style="${checkState[`${type}_${i}`]?'text-decoration:line-through;color:var(--muted)':''}">${f.nome}</span>
+            <span class="tool-qty">×${f.qty}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  document.getElementById('checklist-grid').innerHTML =
+    buildCard('Ferramentas — Elétrica', 'eletrica', allFerretasEletrica()) +
+    buildCard('Ferramentas — Mecânica', 'mecanica', allFerretasMecanica());
+}
+
+// ══════════════════════════════════════════
+// CADASTROS
+// ══════════════════════════════════════════
+function switchCadTab(tab) {
+  ['equip','itens','setores'].forEach(t => {
+    document.getElementById('cad-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  renderCadAtivo(tab);
+}
+
+function renderCadAtivo(tab) {
+  if (tab === 'equip') renderCadEquip();
+  if (tab === 'itens') renderCadItens();
+  if (tab === 'setores') renderCadSetores();
+}
+
+// ── Equipamentos ──
+function renderCadEquip() {
+  const equips = allEquipamentos();
+  document.getElementById('cad-equip-tbody').innerHTML = equips.length
+    ? equips.map((e, i) => `
+      <tr>
+        <td style="color:var(--accent);font-size:.78rem;font-weight:700">${e.setor}</td>
+        <td style="font-weight:600">${e.nome}</td>
+        <td style="color:var(--muted);font-size:.78rem">${e.componentes.length} componente(s)</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="editarEquipamento(${i})">Editar</button>
+            ${i >= DB.equipamentos.length ? `<button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${i})">Excluir</button>` : ''}
+          </div>
+        </td>
+      </tr>`)
+    .join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px">Nenhum equipamento cadastrado.</td></tr>';
+}
+
+function openModal_cadEquip(edit=false) {
+  // populate setor select
+  const sel = document.getElementById('ce-setor');
+  sel.innerHTML = allSetores().map(s => `<option value="${s}">${s}</option>`).join('');
+  document.getElementById('modal-cad-equip-title').textContent = edit ? 'Editar Equipamento' : 'Novo Equipamento';
+  openModal('modal-cad-equip');
+}
+
+function editarEquipamento(i) {
+  const e = allEquipamentos()[i];
+  document.getElementById('ce-edit-idx').value = i;
+  // populate setor select
+  const sel = document.getElementById('ce-setor');
+  sel.innerHTML = allSetores().map(s => `<option value="${s}" ${s===e.setor?'selected':''}>${s}</option>`).join('');
+  document.getElementById('ce-nome').value = e.nome;
+  document.getElementById('ce-comps').value = e.componentes.map(c => `${c.qty} × ${c.nome}`).join('\n');
+  document.getElementById('modal-cad-equip-title').textContent = 'Editar Equipamento';
+  openModal('modal-cad-equip');
+}
+
+function salvarEquipamento() {
+  const idx = document.getElementById('ce-edit-idx').value;
+  const setor = document.getElementById('ce-setor').value.trim();
+  const nome = document.getElementById('ce-nome').value.trim();
+  const compsRaw = document.getElementById('ce-comps').value.trim();
+  if (!setor || !nome) { alert('Preencha setor e nome.'); return; }
+
+  const componentes = compsRaw.split('\n').filter(l=>l.trim()).map(l => {
+    const m = l.match(/^(\d+)\s*[x×]\s*(.+)/i);
+    return m ? {qty: parseInt(m[1]), nome: m[2].trim()} : {qty:1, nome: l.trim()};
+  });
+
+  const extras = JSON.parse(localStorage.getItem('pcm_equipamentos_extra') || '[]');
+  const totalBase = DB.equipamentos.length;
+  const newEquip = { setor, nome, componentes };
+
+  if (idx !== '') {
+    const i = parseInt(idx);
+    if (i < totalBase) {
+      // editing base — store override in extras with a flag
+      // For simplicity, clone it to extras as an edited version and note original index
+      alert('Edição de equipamentos base não é suportada ainda. Exclua e recrie se necessário.');
+      closeModal('modal-cad-equip');
+      return;
+    } else {
+      extras[i - totalBase] = newEquip;
+    }
+  } else {
+    extras.push(newEquip);
+  }
+
+  localStorage.setItem('pcm_equipamentos_extra', JSON.stringify(extras));
+  closeModal('modal-cad-equip');
+  document.getElementById('ce-edit-idx').value = '';
+  document.getElementById('ce-nome').value = '';
+  document.getElementById('ce-comps').value = '';
+  renderCadEquip();
+  renderEquipamentos();
+}
+
+function excluirEquipamento(i) {
+  if (!confirm('Excluir equipamento?')) return;
+  const extras = JSON.parse(localStorage.getItem('pcm_equipamentos_extra') || '[]');
+  extras.splice(i - DB.equipamentos.length, 1);
+  localStorage.setItem('pcm_equipamentos_extra', JSON.stringify(extras));
+  renderCadEquip();
+  renderEquipamentos();
+}
+
+// ══════════════════════════════════════════
+// MODAL — função única centralizada
+// ══════════════════════════════════════════
+function openModal(id) {
+  // Preparar campos antes de abrir
+  if (id === 'modal-os') {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('f-data').value = today;
+    document.getElementById('f-hora').value = new Date().toTimeString().slice(0,5);
+  }
+
+  if (id === 'modal-cad-equip') {
+    const idx = document.getElementById('ce-edit-idx').value;
+    if (!idx) {
+      const sel = document.getElementById('ce-setor');
+      sel.innerHTML = allSetores().map(s => `<option value="${s}">${s}</option>`).join('');
+      document.getElementById('modal-cad-equip-title').textContent = 'Novo Equipamento';
+      document.getElementById('ce-nome').value = '';
+      document.getElementById('ce-comps').value = '';
+    }
+  }
+
+  if (id === 'modal-prev') {
+    ['fp-equip','fp-comp','fp-planejada','fp-realizada','fp-exec'].forEach(fid => {
+      document.getElementById(fid).value = '';
+    });
+    document.getElementById('fp-trim').value = '1';
+  }
+
+  if (id === 'modal-plano') {
+    ['fpl-setor','fpl-equip','fpl-item','fpl-qty'].forEach(fid => {
+      document.getElementById(fid).value = '';
+    });
+    document.getElementById('fpl-plano').value = 'LU';
+    document.getElementById('fpl-period').value = '30 dias';
+  }
+
+  if (id === 'modal-cad-setor') {
+    document.getElementById('cs-nome').value = '';
+  }
+
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Fechar clicando fora do modal
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ── Itens / Ferramentas ──
+function renderCadItens() {
+  const eletrica = allFerretasEletrica();
+  const mecanica = allFerretasMecanica();
+
+  document.getElementById('cad-eletrica-tbody').innerHTML = eletrica.map((f,i) => `
+    <tr>
+      <td>${f.nome}</td>
+      <td style="font-family:var(--mono)">${f.qty}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          ${i >= DB.ferramentasEletrica.length
+            ? `<button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${i})">✕</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
+
+  document.getElementById('cad-mecanica-tbody').innerHTML = mecanica.map((f,i) => `
+    <tr>
+      <td>${f.nome}</td>
+      <td style="font-family:var(--mono)">${f.qty}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          ${i >= DB.ferramentasMecanica.length
+            ? `<button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${i})">✕</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
+}
+
+function openModalItem(tipo) {
+  document.getElementById('ci-tipo').value = tipo;
+  document.getElementById('ci-edit-idx').value = '';
+  document.getElementById('ci-nome').value = '';
+  document.getElementById('ci-qty').value = '1';
+  openModal('modal-cad-item');
+}
+
+function salvarItem() {
+  const tipo = document.getElementById('ci-tipo').value;
+  const nome = document.getElementById('ci-nome').value.trim();
+  const qty = parseInt(document.getElementById('ci-qty').value) || 1;
+  if (!nome) { alert('Informe o nome do item.'); return; }
+
+  const key = `pcm_ferramentas_${tipo}`;
+  const extras = JSON.parse(localStorage.getItem(key) || '[]');
+  extras.push({nome, qty});
+  localStorage.setItem(key, JSON.stringify(extras));
+  closeModal('modal-cad-item');
+  renderCadItens();
+  renderFerramentas();
+}
+
+function excluirItem(tipo, i) {
+  if (!confirm('Excluir item?')) return;
+  const base = tipo === 'eletrica' ? DB.ferramentasEletrica : DB.ferramentasMecanica;
+  const key = `pcm_ferramentas_${tipo}`;
+  const extras = JSON.parse(localStorage.getItem(key) || '[]');
+  extras.splice(i - base.length, 1);
+  localStorage.setItem(key, JSON.stringify(extras));
+  renderCadItens();
+  renderFerramentas();
+}
+
+// ── Setores ──
+function renderCadSetores() {
+  const setores = allSetores();
+  const equips = allEquipamentos();
+  document.getElementById('cad-setores-tbody').innerHTML = setores.map((s,i) => {
+    const count = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
+    const extrasSetores = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
+    const isExtra = extrasSetores.some(x => x.nome.toUpperCase() === s);
+    return `<tr>
+      <td style="font-weight:700">${setorIcon(s)} ${s}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${count}</td>
+      <td>
+        ${isExtra ? `<button class="btn btn-danger btn-sm" onclick="excluirSetor('${s}')">Excluir</button>` : '<span style="color:var(--muted);font-size:.75rem">padrão</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function salvarSetor() {
+  const nome = document.getElementById('cs-nome').value.trim().toUpperCase();
+  if (!nome) { alert('Informe o nome do setor.'); return; }
+  const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
+  if (!extras.some(s => s.nome.toUpperCase() === nome)) {
+    extras.push({nome});
+    localStorage.setItem('pcm_setores_extra', JSON.stringify(extras));
+  }
+  closeModal('modal-cad-setor');
+  document.getElementById('cs-nome').value = '';
+  renderCadSetores();
+  renderEquipamentos();
+}
+
+function excluirSetor(nome) {
+  if (!confirm(`Excluir setor "${nome}"?`)) return;
+  const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
+  const updated = extras.filter(s => s.nome.toUpperCase() !== nome);
+  localStorage.setItem('pcm_setores_extra', JSON.stringify(updated));
+  renderCadSetores();
+  renderEquipamentos();
+}
+
+// ══════════════════════════════════════════
+// PAGINAÇÃO HELPER
+// ══════════════════════════════════════════
+function renderPagination(containerId, totalPages, current, onChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  let html = '';
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="pag-btn ${i===current?'active':''}" onclick="(${onChange})(${i})">${i}</button>`;
+  }
+  container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+renderDashboard();
+</script>
+</body>
+</html>
