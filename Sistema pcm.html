@@ -231,6 +231,8 @@
   .btn-secondary:hover { border-color: var(--white); background: rgba(241,255,255,.15); }
   .btn-danger { background: rgba(248,113,113,.15); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
   .btn-danger:hover { background: rgba(248,113,113,.25); }
+  .btn-success { background: rgba(52,211,153,.15); color: var(--accent3); border: 1px solid rgba(52,211,153,.3); }
+  .btn-success:hover { background: rgba(52,211,153,.25); }
   .btn-sm { padding: 5px 12px; font-size: .76rem; }
 
   /* ── CARDS / STATS ── */
@@ -1090,7 +1092,7 @@
           <div class="page-title">Colaboradores</div>
           <div class="page-sub">Equipe de manutenção — técnicos, operadores e supervisores</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-colaborador')">＋ Novo Colaborador</button>
+        <button class="btn btn-primary" onclick="openModalColaborador()">＋ Novo Colaborador</button>
       </div>
       <div class="card">
         <div class="card-hd">
@@ -1290,7 +1292,39 @@
     <div class="modal-body" id="detail-body"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-os-detail')">Fechar</button>
+      <button class="btn btn-success btn-sm" id="detail-concluir-btn" style="display:none" onclick="abrirConcluirOS(currentDetailId)">✓ Concluir</button>
       <button class="btn btn-danger btn-sm" id="detail-delete-btn">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CONCLUIR O.S. ══ -->
+<div class="modal-overlay" id="modal-os-concluir">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="concluir-title">Concluir O.S. #—</div>
+      <button class="modal-close" onclick="closeModal('modal-os-concluir')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="concluir-os-id" value="">
+      <div class="form-grid full">
+        <div class="form-group">
+          <label>Executante(s)</label>
+          <input type="text" id="concluir-exec" placeholder="Ex: Valmir / Luan">
+        </div>
+        <div class="form-group">
+          <label>Data de Conclusão</label>
+          <input type="date" id="concluir-data">
+        </div>
+        <div class="form-group">
+          <label>Serviço Realizado</label>
+          <textarea id="concluir-realizado" placeholder="Descreva o que foi feito…" rows="4" style="resize:vertical"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-os-concluir')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarConclusao()">✓ Marcar como Concluída</button>
     </div>
   </div>
 </div>
@@ -1330,7 +1364,7 @@
 <div class="modal-overlay" id="modal-cad-item">
   <div class="modal" style="max-width:420px;">
     <div class="modal-hd">
-      <div class="modal-title">Novo Item</div>
+      <div class="modal-title" id="modal-cad-item-title">Novo Item</div>
       <button class="modal-close" onclick="closeModal('modal-cad-item')">✕</button>
     </div>
     <div class="modal-body">
@@ -1485,6 +1519,7 @@
       <button class="modal-close" onclick="closeModal('modal-colaborador')">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="fc-edit-idx" value="">
       <div class="form-grid">
         <div class="form-group span2">
           <label>Nome Completo</label>
@@ -2593,7 +2628,12 @@ function osRow(o, withAction=false) {
     : '<span class="badge badge-red">● Em Aberto</span>';
   const pClass = o.prioridade === 'Alta' ? 'prio-alta' : o.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
   const dataFmt = o.data ? o.data.split('-').reverse().join('/') : '—';
-  const action = withAction ? `<td><button class="btn btn-secondary btn-sm" onclick="openDetail(${o.id})">Ver</button></td>` : '';
+  const action = withAction
+    ? `<td><div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="openDetail(${o.id})">Ver</button>
+        ${o.status === 'Em Aberto' ? `<button class="btn btn-success btn-sm" onclick="abrirConcluirOS(${o.id})">✓ Concluir</button>` : ''}
+      </div></td>`
+    : '';
   return `<tr>
     <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
     <td style="font-family:var(--mono);font-size:.75rem">${dataFmt}</td>
@@ -2636,9 +2676,12 @@ function openDetail(id) {
       <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">${o.realizado}</div>
     </div>` : ''}
   `;
-  // delete only for extras
+  // botão concluir — só para Em Aberto
+  currentDetailId = id;
+  const concluirBtn = document.getElementById('detail-concluir-btn');
+  concluirBtn.style.display = o.status === 'Em Aberto' ? 'inline-flex' : 'none';
+
   const delBtn = document.getElementById('detail-delete-btn');
-  const isExtra = true; // todas as ordens podem ser excluídas via Supabase
   delBtn.style.display = 'inline-flex';
   delBtn.onclick = async () => {
     if (!confirm('Excluir esta O.S.?')) return;
@@ -2653,6 +2696,54 @@ function openDetail(id) {
     renderOrdens();
   };
   openModal('modal-os-detail');
+}
+
+let currentDetailId = null;
+
+function abrirConcluirOS(id) {
+  currentDetailId = id;
+  const o = allOrdens().find(x => x.id === id);
+  document.getElementById('concluir-os-id').value = id;
+  document.getElementById('concluir-exec').value = o?.exec || '';
+  document.getElementById('concluir-realizado').value = o?.realizado || '';
+  document.getElementById('concluir-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('concluir-title').textContent = `Concluir O.S. #${id}`;
+  closeModal('modal-os-detail');
+  openModal('modal-os-concluir');
+}
+
+async function confirmarConclusao() {
+  const id = parseInt(document.getElementById('concluir-os-id').value);
+  const exec = document.getElementById('concluir-exec').value.trim() || null;
+  const realizado = document.getElementById('concluir-realizado').value.trim() || null;
+  const dataConcl = document.getElementById('concluir-data').value || new Date().toISOString().split('T')[0];
+
+  if (sb) {
+    const { error } = await sb.from('ordens').update({
+      status: 'Concluído',
+      data_concl: dataConcl,
+      exec,
+      realizado,
+    }).eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+
+  const idx = STATE.ordens.findIndex(o => o.id === id);
+  if (idx !== -1) {
+    STATE.ordens[idx] = {
+      ...STATE.ordens[idx],
+      status: 'Concluído',
+      dataConcl,
+      data_concl: dataConcl,
+      exec,
+      realizado,
+    };
+  }
+
+  showToast(`O.S. #${id} concluída!`);
+  closeModal('modal-os-concluir');
+  renderDashboard();
+  renderOrdens();
 }
 
 // ══════════════════════════════════════════
@@ -2948,7 +3039,7 @@ function renderCadEquip() {
         <td>
           <div style="display:flex;gap:6px;">
             <button class="btn btn-secondary btn-sm" onclick="editarEquipamento(${i})">Editar</button>
-            ${i >= DB.equipamentos.length ? `<button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${i})">Excluir</button>` : ''}
+            <button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${i})">Excluir</button>
           </div>
         </td>
       </tr>`)
@@ -2988,13 +3079,24 @@ async function salvarEquipamento() {
     return m ? {qty: parseInt(m[1]), nome: m[2].trim()} : {qty:1, nome: l.trim()};
   });
 
-  const newEquip = { setor, nome, componentes };
-  if (sb) {
-    const { data: eq, error } = await sb.from('equipamentos').insert([{setor,nome}]).select().single();
-    if (error) { showToast('Erro: '+error.message,true); return; }
-    newEquip.id = eq.id; showToast('Equipamento salvo!');
+  if (idx !== '') {
+    const i = parseInt(idx);
+    const equip = STATE.equipamentos[i];
+    if (sb && equip && equip.id) {
+      const { error } = await sb.from('equipamentos').update({setor,nome}).eq('id', equip.id);
+      if (error) { showToast('Erro: '+error.message,true); return; }
+    }
+    STATE.equipamentos[i] = { ...equip, setor, nome, componentes };
+    showToast('Equipamento atualizado!');
+  } else {
+    const newEquip = { setor, nome, componentes };
+    if (sb) {
+      const { data: eq, error } = await sb.from('equipamentos').insert([{setor,nome}]).select().single();
+      if (error) { showToast('Erro: '+error.message,true); return; }
+      newEquip.id = eq.id; showToast('Equipamento salvo!');
+    }
+    STATE.equipamentos.push(newEquip);
   }
-  STATE.equipamentos.push(newEquip);
   closeModal('modal-cad-equip');
   document.getElementById('ce-edit-idx').value = '';
   document.getElementById('ce-nome').value = '';
@@ -3053,6 +3155,8 @@ function openModal(id) {
 
   if (id === 'modal-cad-setor') {
     document.getElementById('cs-nome').value = '';
+    document.getElementById('cs-edit-idx').value = '';
+    document.getElementById('modal-cad-setor-title').textContent = 'Novo Setor';
   }
 
   document.getElementById(id).classList.add('open');
@@ -3078,8 +3182,8 @@ function renderCadItens() {
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
-          ${i >= DB.ferramentasEletrica.length
-            ? `<button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${i})">✕</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="editarItem('eletrica',${i})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${i})">✕</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
@@ -3090,8 +3194,8 @@ function renderCadItens() {
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
-          ${i >= DB.ferramentasMecanica.length
-            ? `<button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${i})">✕</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="editarItem('mecanica',${i})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${i})">✕</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
@@ -3102,24 +3206,49 @@ function openModalItem(tipo) {
   document.getElementById('ci-edit-idx').value = '';
   document.getElementById('ci-nome').value = '';
   document.getElementById('ci-qty').value = '1';
+  document.getElementById('modal-cad-item-title').textContent = 'Novo Item';
+  openModal('modal-cad-item');
+}
+
+function editarItem(tipo, i) {
+  const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
+  const item = arr[i];
+  document.getElementById('ci-tipo').value = tipo;
+  document.getElementById('ci-edit-idx').value = i;
+  document.getElementById('ci-nome').value = item.nome;
+  document.getElementById('ci-qty').value = item.qty;
+  document.getElementById('modal-cad-item-title').textContent = 'Editar Item';
   openModal('modal-cad-item');
 }
 
 async function salvarItem() {
   const tipo = document.getElementById('ci-tipo').value;
+  const editIdx = document.getElementById('ci-edit-idx').value;
   const nome = document.getElementById('ci-nome').value.trim();
   const qty = parseInt(document.getElementById('ci-qty').value) || 1;
   if (!nome) { alert('Informe o nome do item.'); return; }
 
-  const novoItem = {tipo, nome, qty, caixa: null, area: null};
-  if (sb) {
-    const { data: s, error } = await sb.from('ferramentas').insert([novoItem]).select().single();
-    if (error) { showToast('Erro: '+error.message,true); return; }
-    novoItem.id = s.id; showToast('Ferramenta salva!');
+  const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
+  if (editIdx !== '') {
+    const i = parseInt(editIdx);
+    const item = arr[i];
+    if (sb && item && item.id) {
+      const { error } = await sb.from('ferramentas').update({nome, qty}).eq('id', item.id);
+      if (error) { showToast('Erro: '+error.message,true); return; }
+    }
+    arr[i] = { ...item, nome, qty };
+    showToast('Item atualizado!');
+  } else {
+    const novoItem = {tipo, nome, qty, caixa: null, area: null};
+    if (sb) {
+      const { data: s, error } = await sb.from('ferramentas').insert([novoItem]).select().single();
+      if (error) { showToast('Erro: '+error.message,true); return; }
+      novoItem.id = s.id; showToast('Ferramenta salva!');
+    }
+    arr.push(novoItem);
   }
-  if (tipo === 'eletrica') STATE.ferramentasEletrica.push(novoItem);
-  else STATE.ferramentasMecanica.push(novoItem);
   closeModal('modal-cad-item');
+  document.getElementById('modal-cad-item-title').textContent = 'Novo Item';
   renderCadItens();
   renderFerramentas();
 }
@@ -3138,30 +3267,47 @@ async function excluirItem(tipo, i) {
 function renderCadSetores() {
   const setores = allSetores();
   const equips = allEquipamentos();
+  const extrasSetores = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
   document.getElementById('cad-setores-tbody').innerHTML = setores.map((s,i) => {
     const count = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
-    const extrasSetores = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
     const isExtra = extrasSetores.some(x => x.nome.toUpperCase() === s);
     return `<tr>
       <td style="font-weight:700">${setorIcon(s)} ${s}</td>
       <td style="font-family:var(--mono);color:var(--muted)">${count}</td>
       <td>
-        ${isExtra ? `<button class="btn btn-danger btn-sm" onclick="excluirSetor('${s}')">Excluir</button>` : '<span style="color:var(--muted);font-size:.75rem">padrão</span>'}
+        <div style="display:flex;gap:6px">
+          ${isExtra
+            ? `<button class="btn btn-secondary btn-sm" onclick="editarSetor('${s}')">Editar</button>
+               <button class="btn btn-danger btn-sm" onclick="excluirSetor('${s}')">Excluir</button>`
+            : '<span style="color:var(--muted);font-size:.75rem">padrão</span>'}
+        </div>
       </td>
     </tr>`;
   }).join('');
 }
 
+function editarSetor(nome) {
+  document.getElementById('cs-edit-idx').value = nome;
+  document.getElementById('cs-nome').value = nome;
+  document.getElementById('modal-cad-setor-title').textContent = 'Editar Setor';
+  document.getElementById('modal-cad-setor').classList.add('open');
+}
+
 function salvarSetor() {
+  const original = document.getElementById('cs-edit-idx').value;
   const nome = document.getElementById('cs-nome').value.trim().toUpperCase();
   if (!nome) { alert('Informe o nome do setor.'); return; }
   const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
-  if (!extras.some(s => s.nome.toUpperCase() === nome)) {
-    extras.push({nome});
-    localStorage.setItem('pcm_setores_extra', JSON.stringify(extras));
+  if (original) {
+    const idx = extras.findIndex(s => s.nome.toUpperCase() === original);
+    if (idx !== -1) extras[idx].nome = nome;
+  } else {
+    if (!extras.some(s => s.nome.toUpperCase() === nome)) extras.push({nome});
   }
+  localStorage.setItem('pcm_setores_extra', JSON.stringify(extras));
   closeModal('modal-cad-setor');
   document.getElementById('cs-nome').value = '';
+  document.getElementById('cs-edit-idx').value = '';
   renderCadSetores();
   renderEquipamentos();
 }
@@ -3363,7 +3509,6 @@ function renderColaboradores() {
 
   document.getElementById('colab-count-label').textContent = `${colabs.length} colaborador(es)`;
 
-  const baseLen = DB.colaboradores.length;
   document.getElementById('colab-tbody').innerHTML = colabs.map((c, i) => `
     <tr>
       <td style="font-family:var(--mono);color:var(--muted)">${String(i+1).padStart(3,'0')}</td>
@@ -3371,33 +3516,67 @@ function renderColaboradores() {
       <td>${c.funcao}</td>
       <td>${c.setor}</td>
       <td>
-        ${i >= baseLen
-          ? `<button class="btn btn-danger btn-sm" onclick="excluirColaborador(${i})">Excluir</button>`
-          : '<span style="color:var(--muted);font-size:.75rem">cadastro base</span>'}
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="editarColaborador(${i})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirColaborador(${i})">Excluir</button>
+        </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nenhum colaborador cadastrado</td></tr>';
 }
 
+function openModalColaborador() {
+  document.getElementById('fc-edit-idx').value = '';
+  document.getElementById('fc-nome').value = '';
+  document.getElementById('fc-setor').value = '';
+  document.querySelector('#modal-colaborador .modal-title').textContent = 'Novo Colaborador';
+  openModal('modal-colaborador');
+}
+
+function editarColaborador(i) {
+  const c = allColaboradores()[i];
+  document.getElementById('fc-edit-idx').value = i;
+  document.getElementById('fc-nome').value = c.nome;
+  document.getElementById('fc-funcao').value = c.funcao;
+  document.getElementById('fc-setor').value = c.setor;
+  document.querySelector('#modal-colaborador .modal-title').textContent = 'Editar Colaborador';
+  openModal('modal-colaborador');
+}
+
 async function salvarColaborador() {
+  const editIdx = document.getElementById('fc-edit-idx').value;
   const nome   = document.getElementById('fc-nome').value.trim();
   const funcao = document.getElementById('fc-funcao').value;
   const setor  = document.getElementById('fc-setor').value.trim();
   if (!nome || !setor) { alert('Preencha nome e setor.'); return; }
-  const maxId = allColaboradores().reduce((m,c) => Math.max(m, c.id||0), 0);
-  const novoColab = {nome, funcao, setor};
-  if (sb) {
-    const { data: saved, error } = await sb.from('colaboradores').insert([novoColab]).select().single();
-    if (error) { showToast('Erro: ' + error.message, true); return; }
-    novoColab.id = saved.id; showToast('Colaborador salvo!');
-  } else { novoColab.id = maxId + 1; }
-  STATE.colaboradores.push(novoColab);
+
+  if (editIdx !== '') {
+    const i = parseInt(editIdx);
+    const colab = STATE.colaboradores[i];
+    if (sb && colab && colab.id) {
+      const { error } = await sb.from('colaboradores').update({nome, funcao, setor}).eq('id', colab.id);
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+    }
+    STATE.colaboradores[i] = { ...colab, nome, funcao, setor };
+    showToast('Colaborador atualizado!');
+  } else {
+    const maxId = allColaboradores().reduce((m,c) => Math.max(m, c.id||0), 0);
+    const novoColab = {nome, funcao, setor};
+    if (sb) {
+      const { data: saved, error } = await sb.from('colaboradores').insert([novoColab]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      novoColab.id = saved.id; showToast('Colaborador salvo!');
+    } else { novoColab.id = maxId + 1; }
+    STATE.colaboradores.push(novoColab);
+  }
   closeModal('modal-colaborador');
+  document.getElementById('fc-edit-idx').value = '';
   document.getElementById('fc-nome').value = '';
   document.getElementById('fc-setor').value = '';
+  document.querySelector('#modal-colaborador .modal-title').textContent = 'Novo Colaborador';
   renderColaboradores();
 }
 
-async function excluirColaborador(id) {
+async function excluirColaborador(i) {
   if (!confirm('Excluir colaborador?')) return;
   const colab = STATE.colaboradores[i];
   if (sb && colab && colab.id) {
