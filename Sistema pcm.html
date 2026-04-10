@@ -231,6 +231,8 @@
   .btn-secondary:hover { border-color: var(--white); background: rgba(241,255,255,.15); }
   .btn-danger { background: rgba(248,113,113,.15); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
   .btn-danger:hover { background: rgba(248,113,113,.25); }
+  .btn-success { background: rgba(52,211,153,.15); color: var(--accent3); border: 1px solid rgba(52,211,153,.3); }
+  .btn-success:hover { background: rgba(52,211,153,.25); }
   .btn-sm { padding: 5px 12px; font-size: .76rem; }
 
   /* ── CARDS / STATS ── */
@@ -1290,7 +1292,39 @@
     <div class="modal-body" id="detail-body"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-os-detail')">Fechar</button>
+      <button class="btn btn-success btn-sm" id="detail-concluir-btn" style="display:none" onclick="abrirConcluirOS(currentDetailId)">✓ Concluir</button>
       <button class="btn btn-danger btn-sm" id="detail-delete-btn">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CONCLUIR O.S. ══ -->
+<div class="modal-overlay" id="modal-os-concluir">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="concluir-title">Concluir O.S. #—</div>
+      <button class="modal-close" onclick="closeModal('modal-os-concluir')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="concluir-os-id" value="">
+      <div class="form-grid full">
+        <div class="form-group">
+          <label>Executante(s)</label>
+          <input type="text" id="concluir-exec" placeholder="Ex: Valmir / Luan">
+        </div>
+        <div class="form-group">
+          <label>Data de Conclusão</label>
+          <input type="date" id="concluir-data">
+        </div>
+        <div class="form-group">
+          <label>Serviço Realizado</label>
+          <textarea id="concluir-realizado" placeholder="Descreva o que foi feito…" rows="4" style="resize:vertical"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-os-concluir')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarConclusao()">✓ Marcar como Concluída</button>
     </div>
   </div>
 </div>
@@ -2594,7 +2628,12 @@ function osRow(o, withAction=false) {
     : '<span class="badge badge-red">● Em Aberto</span>';
   const pClass = o.prioridade === 'Alta' ? 'prio-alta' : o.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
   const dataFmt = o.data ? o.data.split('-').reverse().join('/') : '—';
-  const action = withAction ? `<td><button class="btn btn-secondary btn-sm" onclick="openDetail(${o.id})">Ver</button></td>` : '';
+  const action = withAction
+    ? `<td><div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="openDetail(${o.id})">Ver</button>
+        ${o.status === 'Em Aberto' ? `<button class="btn btn-success btn-sm" onclick="abrirConcluirOS(${o.id})">✓ Concluir</button>` : ''}
+      </div></td>`
+    : '';
   return `<tr>
     <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
     <td style="font-family:var(--mono);font-size:.75rem">${dataFmt}</td>
@@ -2637,9 +2676,12 @@ function openDetail(id) {
       <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">${o.realizado}</div>
     </div>` : ''}
   `;
-  // delete only for extras
+  // botão concluir — só para Em Aberto
+  currentDetailId = id;
+  const concluirBtn = document.getElementById('detail-concluir-btn');
+  concluirBtn.style.display = o.status === 'Em Aberto' ? 'inline-flex' : 'none';
+
   const delBtn = document.getElementById('detail-delete-btn');
-  const isExtra = true; // todas as ordens podem ser excluídas via Supabase
   delBtn.style.display = 'inline-flex';
   delBtn.onclick = async () => {
     if (!confirm('Excluir esta O.S.?')) return;
@@ -2654,6 +2696,54 @@ function openDetail(id) {
     renderOrdens();
   };
   openModal('modal-os-detail');
+}
+
+let currentDetailId = null;
+
+function abrirConcluirOS(id) {
+  currentDetailId = id;
+  const o = allOrdens().find(x => x.id === id);
+  document.getElementById('concluir-os-id').value = id;
+  document.getElementById('concluir-exec').value = o?.exec || '';
+  document.getElementById('concluir-realizado').value = o?.realizado || '';
+  document.getElementById('concluir-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('concluir-title').textContent = `Concluir O.S. #${id}`;
+  closeModal('modal-os-detail');
+  openModal('modal-os-concluir');
+}
+
+async function confirmarConclusao() {
+  const id = parseInt(document.getElementById('concluir-os-id').value);
+  const exec = document.getElementById('concluir-exec').value.trim() || null;
+  const realizado = document.getElementById('concluir-realizado').value.trim() || null;
+  const dataConcl = document.getElementById('concluir-data').value || new Date().toISOString().split('T')[0];
+
+  if (sb) {
+    const { error } = await sb.from('ordens').update({
+      status: 'Concluído',
+      data_concl: dataConcl,
+      exec,
+      realizado,
+    }).eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+
+  const idx = STATE.ordens.findIndex(o => o.id === id);
+  if (idx !== -1) {
+    STATE.ordens[idx] = {
+      ...STATE.ordens[idx],
+      status: 'Concluído',
+      dataConcl,
+      data_concl: dataConcl,
+      exec,
+      realizado,
+    };
+  }
+
+  showToast(`O.S. #${id} concluída!`);
+  closeModal('modal-os-concluir');
+  renderDashboard();
+  renderOrdens();
 }
 
 // ══════════════════════════════════════════
