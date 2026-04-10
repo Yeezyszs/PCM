@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <title>PCM — Planejamento e Controle de Manutenção</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -46,6 +47,37 @@
     display: flex;
     flex-direction: column;
   }
+
+  /* ── LOADING SCREEN ── */
+  #loading-screen {
+    position: fixed; inset: 0;
+    background: var(--navy-deep);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+    gap: 18px;
+    transition: opacity .4s;
+  }
+  #loading-screen.hide { opacity: 0; pointer-events: none; }
+  .loading-logo { font-size: 1.4rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .loading-bar { width: 240px; height: 3px; background: var(--white-soft); border-radius: 2px; overflow: hidden; }
+  .loading-bar-inner { height: 100%; width: 30%; background: var(--accent3); border-radius: 2px; animation: loadpulse 1.2s ease-in-out infinite; }
+  @keyframes loadpulse { 0%,100%{width:20%} 50%{width:80%} }
+  .loading-msg { font-size: .78rem; color: var(--muted); font-family: var(--mono); }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 18px;
+    font-size: .82rem; color: var(--text);
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    transform: translateY(80px); opacity: 0;
+    transition: all .3s; z-index: 8000;
+    max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.toast-err { border-color: var(--danger); color: var(--danger); }
 
   /* ── TOPBAR ── */
   .topbar {
@@ -559,7 +591,7 @@
     color: var(--muted);
   }
 
-  .pag-btns { display: flex; gap: 6px; }
+  .pag-btns { display: flex; gap: 5px; align-items: center; flex-wrap: nowrap; }
 
   .pag-btn {
     padding: 4px 10px;
@@ -570,10 +602,22 @@
     cursor: pointer;
     font-size: .78rem;
     font-family: var(--mono);
+    white-space: nowrap;
+    min-width: 32px;
+    text-align: center;
   }
 
   .pag-btn:hover { border-color: var(--white); color: var(--white); }
   .pag-btn.active { background: var(--white); color: var(--navy); border-color: var(--white); font-weight: 700; }
+  .pag-btn:disabled { opacity: .35; cursor: default; pointer-events: none; }
+  .pag-ellipsis { color: var(--muted); font-family: var(--mono); font-size: .78rem; padding: 0 2px; user-select: none; }
+
+  /* ── SCROLL HORIZONTAL NAS TABELAS ── */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-wrap::-webkit-scrollbar { height: 6px; }
+  .tbl-wrap::-webkit-scrollbar-track { background: var(--surface2); }
+  .tbl-wrap::-webkit-scrollbar-thumb { background: var(--navy-light); border-radius: 3px; }
+  .tbl-wrap table { min-width: 700px; }
 
   /* ── FILTER ROW ── */
   .filter-row {
@@ -702,6 +746,16 @@
 <body>
 
 <!-- TOPBAR -->
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen">
+    <div class="loading-logo">PCM <span style="color:var(--muted);font-weight:400">— Manutenção</span></div>
+    <div class="loading-bar"><div class="loading-bar-inner"></div></div>
+    <div class="loading-msg" id="loading-msg">Conectando ao banco de dados…</div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
 <div class="topbar">
   <div class="logo">PCM<span> Sistema</span></div>
   <div class="topbar-right">
@@ -785,6 +839,7 @@
           <span class="card-title">Últimas Ordens de Serviço</span>
           <button class="btn btn-secondary btn-sm" onclick="goPage('ordens')">Ver todas →</button>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -793,6 +848,7 @@
           </thead>
           <tbody id="dash-os-tbody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -828,6 +884,7 @@
             </select>
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -836,6 +893,7 @@
           </thead>
           <tbody id="os-tbody"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="os-count-label"></span>
           <div class="pag-btns" id="os-pages"></div>
@@ -864,6 +922,7 @@
             </select>
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -872,6 +931,7 @@
           </thead>
           <tbody id="prev-tbody"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="prev-count-label"></span>
           <div class="pag-btns" id="prev-pages"></div>
@@ -906,6 +966,7 @@
             </select>
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -914,6 +975,7 @@
           </thead>
           <tbody id="plan-tbody"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="plan-count-label"></span>
           <div class="pag-btns" id="plan-pages"></div>
@@ -1028,7 +1090,7 @@
           <div class="page-title">Colaboradores</div>
           <div class="page-sub">Equipe de manutenção — técnicos, operadores e supervisores</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-colaborador')">＋ Novo Colaborador</button>
+        <button class="btn btn-primary" onclick="openModalColaborador()">＋ Novo Colaborador</button>
       </div>
       <div class="card">
         <div class="card-hd">
@@ -1038,12 +1100,14 @@
             <input type="text" id="colab-search" placeholder="Buscar…" oninput="renderColaboradores()">
           </div>
         </div>
+        <div class="tbl-wrap">
         <table>
           <thead>
             <tr><th>#</th><th>Nome</th><th>Função</th><th>Setor</th><th>Ações</th></tr>
           </thead>
           <tbody id="colab-tbody"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -1266,7 +1330,7 @@
 <div class="modal-overlay" id="modal-cad-item">
   <div class="modal" style="max-width:420px;">
     <div class="modal-hd">
-      <div class="modal-title">Novo Item</div>
+      <div class="modal-title" id="modal-cad-item-title">Novo Item</div>
       <button class="modal-close" onclick="closeModal('modal-cad-item')">✕</button>
     </div>
     <div class="modal-body">
@@ -1421,6 +1485,7 @@
       <button class="modal-close" onclick="closeModal('modal-colaborador')">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="fc-edit-idx" value="">
       <div class="form-grid">
         <div class="form-group span2">
           <label>Nome Completo</label>
@@ -1501,7 +1566,132 @@
 
 <script>
 // ══════════════════════════════════════════
-// DATA — extraído das planilhas
+// CONFIGURAÇÃO SUPABASE
+// ══════════════════════════════════════════
+// ⚠️  Preencha com as credenciais do seu projeto Supabase:
+//    Settings → API → Project URL  e  anon public key
+const SUPABASE_URL      = 'COLE_SUA_URL_AQUI';
+const SUPABASE_ANON_KEY = 'COLE_SUA_ANON_KEY_AQUI';
+
+const sb = (SUPABASE_URL !== 'COLE_SUA_URL_AQUI')
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+// ══════════════════════════════════════════
+// ESTADO GLOBAL (carregado do Supabase)
+// ══════════════════════════════════════════
+let STATE = {
+  ordens: [], equipamentos: [], preventiva: [], planos: [],
+  lubrificacao: [], luExecucoes: [], colaboradores: [],
+  ferramentasEletrica: [], ferramentasMecanica: [], caixasFerramentas: [],
+  checkState: {},
+};
+
+// ── helpers de leitura ──
+function allOrdens()           { return STATE.ordens; }
+function allEquipamentos()     { return STATE.equipamentos; }
+function allPreventiva()       { return STATE.preventiva; }
+function allPlanos()           { return STATE.planos; }
+function allLubrificacao()     { return STATE.lubrificacao; }
+function allLuExecucoes()      { return STATE.luExecucoes; }
+function allColaboradores()    { return STATE.colaboradores; }
+function allFerretasEletrica() { return STATE.ferramentasEletrica; }
+function allFerretasMecanica() { return STATE.ferramentasMecanica; }
+
+// ── toast ──
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isErr ? ' toast-err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 3500);
+}
+
+// ── loading ──
+function setLoadingMsg(msg) {
+  const el = document.getElementById('loading-msg');
+  if (el) el.textContent = msg;
+}
+function hideLoading() {
+  const el = document.getElementById('loading-screen');
+  if (el) { el.classList.add('hide'); setTimeout(() => el.remove(), 500); }
+}
+
+// ══════════════════════════════════════════
+// CARREGAMENTO INICIAL DO BANCO
+// ══════════════════════════════════════════
+async function loadAll() {
+  if (!sb) {
+    setLoadingMsg('⚠️ Supabase não configurado — usando dados de demonstração…');
+    await new Promise(r => setTimeout(r, 1500));
+    hideLoading();
+    return;
+  }
+
+  try {
+    setLoadingMsg('Carregando ordens de serviço…');
+    const [
+      { data: ordens,    error: e1 },
+      { data: equips,    error: e2 },
+      { data: comps,     error: e3 },
+      { data: prev,      error: e4 },
+      { data: planos,    error: e5 },
+      { data: lu,        error: e6 },
+      { data: luExec,    error: e7 },
+      { data: colab,     error: e8 },
+      { data: fEl,       error: e9 },
+      { data: fMec,      error: e10},
+      { data: caixas,    error: e11},
+    ] = await Promise.all([
+      sb.from('ordens').select('*').order('id', { ascending: false }),
+      sb.from('equipamentos').select('*').order('setor'),
+      sb.from('equipamento_componentes').select('*'),
+      sb.from('preventiva').select('*').order('equip'),
+      sb.from('planos').select('*').order('setor'),
+      sb.from('lubrificacao').select('*').order('setor'),
+      sb.from('lu_execucoes').select('*').order('data', { ascending: false }),
+      sb.from('colaboradores').select('*').order('nome'),
+      sb.from('ferramentas').select('*').eq('tipo', 'eletrica').is('caixa', null),
+      sb.from('ferramentas').select('*').eq('tipo', 'mecanica').is('caixa', null),
+      sb.from('ferramentas').select('*').not('caixa', 'is', null),
+    ]);
+
+    const errs = [e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11].filter(Boolean);
+    if (errs.length) throw new Error(errs.map(e => e.message).join('; '));
+
+    // Montar equipamentos com componentes embutidos
+    STATE.equipamentos = (equips || []).map(e => ({
+      ...e,
+      componentes: (comps || [])
+        .filter(c => c.equipamento_id === e.id)
+        .map(c => ({ qty: c.qty, nome: c.nome }))
+    }));
+
+    // Normalizar campo descricao → desc para compatibilidade com o código existente
+    STATE.ordens = (ordens || []).map(o => ({ ...o, desc: o.descricao }));
+
+    STATE.preventiva       = prev    || [];
+    STATE.planos           = planos  || [];
+    STATE.lubrificacao     = lu      || [];
+    STATE.luExecucoes      = luExec  || [];
+    STATE.colaboradores    = colab   || [];
+    STATE.ferramentasEletrica = fEl  || [];
+    STATE.ferramentasMecanica = fMec || [];
+    STATE.caixasFerramentas   = caixas || [];
+
+    setLoadingMsg('Pronto!');
+    hideLoading();
+
+  } catch (err) {
+    console.error('Erro ao carregar dados:', err);
+    setLoadingMsg('Erro: ' + err.message);
+    document.querySelector('.loading-bar-inner').style.background = 'var(--danger)';
+    setTimeout(hideLoading, 3000);
+  }
+}
+
+// ══════════════════════════════════════════
+// DATA — mantido como fallback / seed local
 // ══════════════════════════════════════════
 
 const DB = {
@@ -2180,24 +2370,8 @@ const DB = {
   ],
 };
 
-// localStorage para persistência
-const STORAGE_KEY = 'pcm_ordens_extra';
-let ordensExtras = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-function allOrdens() { return [...DB.ordens, ...ordensExtras]; }
-
-function allColaboradores() {
-  const extras = JSON.parse(localStorage.getItem('pcm_colaboradores_extra') || '[]');
-  return [...DB.colaboradores, ...extras];
-}
-
-function allLubrificacao() {
-  const extras = JSON.parse(localStorage.getItem('pcm_lu_extra') || '[]');
-  return [...DB.lubrificacao, ...extras];
-}
-
-function allLuExecucoes() {
-  return JSON.parse(localStorage.getItem('pcm_lu_execucoes') || '[]');
-}
+// ── As funções allXxx() estão definidas acima no bloco STATE ──
+// (lêem de STATE, que é carregado do Supabase no loadAll())
 
 // ══════════════════════════════════════════
 // PAGINAÇÃO
@@ -2245,7 +2419,7 @@ function goPage(id) {
 // ══════════════════════════════════════════
 // SALVAR O.S.
 // ══════════════════════════════════════════
-function salvarOS() {
+async function salvarOS() {
   const ordens = allOrdens();
   const maxId = ordens.reduce((m, o) => Math.max(m, o.id), 0);
   const nova = {
@@ -2264,9 +2438,21 @@ function salvarOS() {
     exec: document.getElementById('f-exec').value || null,
     status: document.getElementById('f-status').value,
   };
-  ordensExtras.push(nova);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ordensExtras));
+  if (sb) {
+    const { data: saved, error } = await sb.from('ordens').insert([{
+      data: nova.data, hora: nova.hora, req: nova.req, setor: nova.setor,
+      tipo: nova.tipo, natureza: nova.natureza, descricao: nova.desc,
+      prioridade: nova.prioridade, data_prog: nova.dataProg || null,
+      realizado: nova.realizado || null, exec: nova.exec || null, status: nova.status
+    }]).select().single();
+    if (error) { showToast('Erro ao salvar O.S.: ' + error.message, true); return; }
+    nova.id = saved.id;
+    showToast('O.S. #' + saved.id + ' criada!');
+  }
+  STATE.ordens.unshift(nova);
   closeModal('modal-os');
+  document.getElementById('f-data').value = '';
+  document.getElementById('f-desc').value = '';
   renderDashboard();
   renderOrdens();
 }
@@ -2453,11 +2639,16 @@ function openDetail(id) {
   `;
   // delete only for extras
   const delBtn = document.getElementById('detail-delete-btn');
-  const isExtra = ordensExtras.some(x => x.id === id);
-  delBtn.style.display = isExtra ? 'inline-flex' : 'none';
-  delBtn.onclick = () => {
-    ordensExtras = ordensExtras.filter(x => x.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ordensExtras));
+  const isExtra = true; // todas as ordens podem ser excluídas via Supabase
+  delBtn.style.display = 'inline-flex';
+  delBtn.onclick = async () => {
+    if (!confirm('Excluir esta O.S.?')) return;
+    if (sb) {
+      const { error } = await sb.from('ordens').delete().eq('id', id);
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      showToast('O.S. excluída.');
+    }
+    STATE.ordens = STATE.ordens.filter(o => o.id !== id);
     closeModal('modal-os-detail');
     renderDashboard();
     renderOrdens();
@@ -2468,12 +2659,9 @@ function openDetail(id) {
 // ══════════════════════════════════════════
 // PREVENTIVA
 // ══════════════════════════════════════════
-function allPreventiva() {
-  const extras = JSON.parse(localStorage.getItem('pcm_preventiva_extra') || '[]');
-  return [...DB.preventiva, ...extras];
-}
+// allPreventiva() → STATE.preventiva
 
-function salvarPreventiva() {
+async function salvarPreventiva() {
   const equip = document.getElementById('fp-equip').value.trim();
   const comp  = document.getElementById('fp-comp').value.trim();
   if (!equip || !comp) { alert('Preencha equipamento e componente.'); return; }
@@ -2485,9 +2673,15 @@ function salvarPreventiva() {
     realizada: document.getElementById('fp-realizada').value || null,
     exec: document.getElementById('fp-exec').value.trim() || null,
   };
-  const extras = JSON.parse(localStorage.getItem('pcm_preventiva_extra') || '[]');
-  extras.push(novo);
-  localStorage.setItem('pcm_preventiva_extra', JSON.stringify(extras));
+  if (sb) {
+    const { data: saved, error } = await sb.from('preventiva').insert([{
+      equip: novo.equip, comp: novo.comp, trimestre: novo.trim,
+      planejada: novo.planejada || null, realizada: novo.realizada || null, exec: novo.exec || null
+    }]).select().single();
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    novo.id = saved.id; showToast('Preventiva salva!');
+  }
+  STATE.preventiva.unshift(novo);
   closeModal('modal-prev');
   ['fp-equip','fp-comp','fp-planejada','fp-realizada','fp-exec'].forEach(id => document.getElementById(id).value = '');
   renderPreventiva();
@@ -2542,12 +2736,9 @@ function renderPreventiva() {
 // ══════════════════════════════════════════
 // PLANOS
 // ══════════════════════════════════════════
-function allPlanos() {
-  const extras = JSON.parse(localStorage.getItem('pcm_planos_extra') || '[]');
-  return [...DB.planos, ...extras];
-}
+// allPlanos() → STATE.planos
 
-function salvarPlano() {
+async function salvarPlano() {
   const setor = document.getElementById('fpl-setor').value.trim().toUpperCase();
   const equip = document.getElementById('fpl-equip').value.trim();
   const item  = document.getElementById('fpl-item').value.trim();
@@ -2560,9 +2751,12 @@ function salvarPlano() {
     period: document.getElementById('fpl-period').value,
     qty: parseInt(document.getElementById('fpl-qty').value) || null,
   };
-  const extras = JSON.parse(localStorage.getItem('pcm_planos_extra') || '[]');
-  extras.push(novo);
-  localStorage.setItem('pcm_planos_extra', JSON.stringify(extras));
+  if (sb) {
+    const { data: s, error } = await sb.from('planos').insert([{setor:novo.setor,equip:novo.equip,plano:novo.plano,item:novo.item,period:novo.period,qty:novo.qty||null}]).select().single();
+    if (error) { showToast('Erro: '+error.message,true); return; }
+    novo.id = s.id; showToast('Plano salvo!');
+  }
+  STATE.planos.push(novo);
   closeModal('modal-plano');
   ['fpl-setor','fpl-equip','fpl-item','fpl-qty'].forEach(id => document.getElementById(id).value = '');
   renderPlanos();
@@ -2611,17 +2805,12 @@ function renderPlanos() {
 // ══════════════════════════════════════════
 let selectedSetor = null;
 
-function allEquipamentos() {
-  const extras = JSON.parse(localStorage.getItem('pcm_equipamentos_extra') || '[]');
-  return [...DB.equipamentos, ...extras];
-}
+// allEquipamentos() → STATE.equipamentos
 
 function allSetores() {
-  const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
   const fromEquip = [...new Set(allEquipamentos().map(e => e.setor.trim().toUpperCase()))];
   const base = ['EXTRAÇÃO','SECAGEM','CALDEIRA','ENSAQUE','OFICINA','POÇO'];
-  const merged = [...new Set([...base, ...fromEquip, ...extras.map(s=>s.nome.toUpperCase())])].sort();
-  return merged;
+  return [...new Set([...base, ...fromEquip])].sort();
 }
 
 const SETOR_ICONS = {
@@ -2696,18 +2885,11 @@ function renderEquipCards() {
 // ══════════════════════════════════════════
 // FERRAMENTAS
 // ══════════════════════════════════════════
-function allFerretasEletrica() {
-  const extras = JSON.parse(localStorage.getItem('pcm_ferramentas_eletrica') || '[]');
-  return [...DB.ferramentasEletrica, ...extras];
-}
-function allFerretasMecanica() {
-  const extras = JSON.parse(localStorage.getItem('pcm_ferramentas_mecanica') || '[]');
-  return [...DB.ferramentasMecanica, ...extras];
-}
+// allFerretasEletrica() e allFerretasMecanica() → STATE (definidas acima)
 
 function renderFerramentas() {
   renderCaixasFerramentas();
-  const checkState = JSON.parse(localStorage.getItem('pcm_check_state') || '{}');
+  const checkState = STATE.checkState;
 
   function buildCard(title, type, items) {
     const total = items.length;
@@ -2722,9 +2904,7 @@ function renderFerramentas() {
         ${items.map((f, i) => `
           <div class="tool-item">
             <div class="tool-check ${checkState[`${type}_${i}`] ? 'checked' : ''}" onclick="(function(){
-              const s=JSON.parse(localStorage.getItem('pcm_check_state')||'{}');
-              s['${type}_${i}']=!s['${type}_${i}'];
-              localStorage.setItem('pcm_check_state',JSON.stringify(s));
+              STATE.checkState['${type}_${i}']=!STATE.checkState['${type}_${i}'];
               renderFerramentas();
             })()"></div>
             <span style="${checkState[`${type}_${i}`]?'text-decoration:line-through;color:var(--muted)':''}">${f.nome}</span>
@@ -2769,7 +2949,7 @@ function renderCadEquip() {
         <td>
           <div style="display:flex;gap:6px;">
             <button class="btn btn-secondary btn-sm" onclick="editarEquipamento(${i})">Editar</button>
-            ${i >= DB.equipamentos.length ? `<button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${i})">Excluir</button>` : ''}
+            <button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${i})">Excluir</button>
           </div>
         </td>
       </tr>`)
@@ -2797,7 +2977,7 @@ function editarEquipamento(i) {
   openModal('modal-cad-equip');
 }
 
-function salvarEquipamento() {
+async function salvarEquipamento() {
   const idx = document.getElementById('ce-edit-idx').value;
   const setor = document.getElementById('ce-setor').value.trim();
   const nome = document.getElementById('ce-nome').value.trim();
@@ -2809,26 +2989,24 @@ function salvarEquipamento() {
     return m ? {qty: parseInt(m[1]), nome: m[2].trim()} : {qty:1, nome: l.trim()};
   });
 
-  const extras = JSON.parse(localStorage.getItem('pcm_equipamentos_extra') || '[]');
-  const totalBase = DB.equipamentos.length;
-  const newEquip = { setor, nome, componentes };
-
   if (idx !== '') {
     const i = parseInt(idx);
-    if (i < totalBase) {
-      // editing base — store override in extras with a flag
-      // For simplicity, clone it to extras as an edited version and note original index
-      alert('Edição de equipamentos base não é suportada ainda. Exclua e recrie se necessário.');
-      closeModal('modal-cad-equip');
-      return;
-    } else {
-      extras[i - totalBase] = newEquip;
+    const equip = STATE.equipamentos[i];
+    if (sb && equip && equip.id) {
+      const { error } = await sb.from('equipamentos').update({setor,nome}).eq('id', equip.id);
+      if (error) { showToast('Erro: '+error.message,true); return; }
     }
+    STATE.equipamentos[i] = { ...equip, setor, nome, componentes };
+    showToast('Equipamento atualizado!');
   } else {
-    extras.push(newEquip);
+    const newEquip = { setor, nome, componentes };
+    if (sb) {
+      const { data: eq, error } = await sb.from('equipamentos').insert([{setor,nome}]).select().single();
+      if (error) { showToast('Erro: '+error.message,true); return; }
+      newEquip.id = eq.id; showToast('Equipamento salvo!');
+    }
+    STATE.equipamentos.push(newEquip);
   }
-
-  localStorage.setItem('pcm_equipamentos_extra', JSON.stringify(extras));
   closeModal('modal-cad-equip');
   document.getElementById('ce-edit-idx').value = '';
   document.getElementById('ce-nome').value = '';
@@ -2837,11 +3015,13 @@ function salvarEquipamento() {
   renderEquipamentos();
 }
 
-function excluirEquipamento(i) {
+async function excluirEquipamento(i) {
   if (!confirm('Excluir equipamento?')) return;
-  const extras = JSON.parse(localStorage.getItem('pcm_equipamentos_extra') || '[]');
-  extras.splice(i - DB.equipamentos.length, 1);
-  localStorage.setItem('pcm_equipamentos_extra', JSON.stringify(extras));
+  if (sb) {
+    const equip = STATE.equipamentos[i];
+    if (equip && equip.id) await sb.from('equipamentos').delete().eq('id', equip.id);
+  }
+  STATE.equipamentos.splice(i, 1);
   renderCadEquip();
   renderEquipamentos();
 }
@@ -2885,6 +3065,8 @@ function openModal(id) {
 
   if (id === 'modal-cad-setor') {
     document.getElementById('cs-nome').value = '';
+    document.getElementById('cs-edit-idx').value = '';
+    document.getElementById('modal-cad-setor-title').textContent = 'Novo Setor';
   }
 
   document.getElementById(id).classList.add('open');
@@ -2910,8 +3092,8 @@ function renderCadItens() {
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
-          ${i >= DB.ferramentasEletrica.length
-            ? `<button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${i})">✕</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="editarItem('eletrica',${i})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${i})">✕</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
@@ -2922,8 +3104,8 @@ function renderCadItens() {
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
-          ${i >= DB.ferramentasMecanica.length
-            ? `<button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${i})">✕</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="editarItem('mecanica',${i})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${i})">✕</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
@@ -2934,31 +3116,59 @@ function openModalItem(tipo) {
   document.getElementById('ci-edit-idx').value = '';
   document.getElementById('ci-nome').value = '';
   document.getElementById('ci-qty').value = '1';
+  document.getElementById('modal-cad-item-title').textContent = 'Novo Item';
   openModal('modal-cad-item');
 }
 
-function salvarItem() {
+function editarItem(tipo, i) {
+  const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
+  const item = arr[i];
+  document.getElementById('ci-tipo').value = tipo;
+  document.getElementById('ci-edit-idx').value = i;
+  document.getElementById('ci-nome').value = item.nome;
+  document.getElementById('ci-qty').value = item.qty;
+  document.getElementById('modal-cad-item-title').textContent = 'Editar Item';
+  openModal('modal-cad-item');
+}
+
+async function salvarItem() {
   const tipo = document.getElementById('ci-tipo').value;
+  const editIdx = document.getElementById('ci-edit-idx').value;
   const nome = document.getElementById('ci-nome').value.trim();
   const qty = parseInt(document.getElementById('ci-qty').value) || 1;
   if (!nome) { alert('Informe o nome do item.'); return; }
 
-  const key = `pcm_ferramentas_${tipo}`;
-  const extras = JSON.parse(localStorage.getItem(key) || '[]');
-  extras.push({nome, qty});
-  localStorage.setItem(key, JSON.stringify(extras));
+  const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
+  if (editIdx !== '') {
+    const i = parseInt(editIdx);
+    const item = arr[i];
+    if (sb && item && item.id) {
+      const { error } = await sb.from('ferramentas').update({nome, qty}).eq('id', item.id);
+      if (error) { showToast('Erro: '+error.message,true); return; }
+    }
+    arr[i] = { ...item, nome, qty };
+    showToast('Item atualizado!');
+  } else {
+    const novoItem = {tipo, nome, qty, caixa: null, area: null};
+    if (sb) {
+      const { data: s, error } = await sb.from('ferramentas').insert([novoItem]).select().single();
+      if (error) { showToast('Erro: '+error.message,true); return; }
+      novoItem.id = s.id; showToast('Ferramenta salva!');
+    }
+    arr.push(novoItem);
+  }
   closeModal('modal-cad-item');
+  document.getElementById('modal-cad-item-title').textContent = 'Novo Item';
   renderCadItens();
   renderFerramentas();
 }
 
-function excluirItem(tipo, i) {
+async function excluirItem(tipo, i) {
   if (!confirm('Excluir item?')) return;
-  const base = tipo === 'eletrica' ? DB.ferramentasEletrica : DB.ferramentasMecanica;
-  const key = `pcm_ferramentas_${tipo}`;
-  const extras = JSON.parse(localStorage.getItem(key) || '[]');
-  extras.splice(i - base.length, 1);
-  localStorage.setItem(key, JSON.stringify(extras));
+  const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
+  const item = arr[i];
+  if (sb && item && item.id) await sb.from('ferramentas').delete().eq('id', item.id);
+  arr.splice(i, 1);
   renderCadItens();
   renderFerramentas();
 }
@@ -2967,30 +3177,47 @@ function excluirItem(tipo, i) {
 function renderCadSetores() {
   const setores = allSetores();
   const equips = allEquipamentos();
+  const extrasSetores = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
   document.getElementById('cad-setores-tbody').innerHTML = setores.map((s,i) => {
     const count = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
-    const extrasSetores = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
     const isExtra = extrasSetores.some(x => x.nome.toUpperCase() === s);
     return `<tr>
       <td style="font-weight:700">${setorIcon(s)} ${s}</td>
       <td style="font-family:var(--mono);color:var(--muted)">${count}</td>
       <td>
-        ${isExtra ? `<button class="btn btn-danger btn-sm" onclick="excluirSetor('${s}')">Excluir</button>` : '<span style="color:var(--muted);font-size:.75rem">padrão</span>'}
+        <div style="display:flex;gap:6px">
+          ${isExtra
+            ? `<button class="btn btn-secondary btn-sm" onclick="editarSetor('${s}')">Editar</button>
+               <button class="btn btn-danger btn-sm" onclick="excluirSetor('${s}')">Excluir</button>`
+            : '<span style="color:var(--muted);font-size:.75rem">padrão</span>'}
+        </div>
       </td>
     </tr>`;
   }).join('');
 }
 
+function editarSetor(nome) {
+  document.getElementById('cs-edit-idx').value = nome;
+  document.getElementById('cs-nome').value = nome;
+  document.getElementById('modal-cad-setor-title').textContent = 'Editar Setor';
+  document.getElementById('modal-cad-setor').classList.add('open');
+}
+
 function salvarSetor() {
+  const original = document.getElementById('cs-edit-idx').value;
   const nome = document.getElementById('cs-nome').value.trim().toUpperCase();
   if (!nome) { alert('Informe o nome do setor.'); return; }
   const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
-  if (!extras.some(s => s.nome.toUpperCase() === nome)) {
-    extras.push({nome});
-    localStorage.setItem('pcm_setores_extra', JSON.stringify(extras));
+  if (original) {
+    const idx = extras.findIndex(s => s.nome.toUpperCase() === original);
+    if (idx !== -1) extras[idx].nome = nome;
+  } else {
+    if (!extras.some(s => s.nome.toUpperCase() === nome)) extras.push({nome});
   }
+  localStorage.setItem('pcm_setores_extra', JSON.stringify(extras));
   closeModal('modal-cad-setor');
   document.getElementById('cs-nome').value = '';
+  document.getElementById('cs-edit-idx').value = '';
   renderCadSetores();
   renderEquipamentos();
 }
@@ -3161,7 +3388,7 @@ function openModalLuExec() {
   openModal('modal-lu-exec');
 }
 
-function salvarLuExec() {
+async function salvarLuExec() {
   const setor = document.getElementById('fle-setor').value;
   const equip = document.getElementById('fle-equip').value;
   const item  = document.getElementById('fle-item').value;
@@ -3170,10 +3397,13 @@ function salvarLuExec() {
   if (!setor || !equip || !item || !data || !exec) {
     alert('Preencha todos os campos obrigatórios.'); return;
   }
-  const execucoes = allLuExecucoes();
-  execucoes.push({ key: `${setor}||${equip}||${item}`, setor, equip, item, data, exec,
-    obs: document.getElementById('fle-obs').value });
-  localStorage.setItem('pcm_lu_execucoes', JSON.stringify(execucoes));
+  const payload = { setor, equip, item, data, exec, obs: document.getElementById('fle-obs').value };
+  if (sb) {
+    const { error } = await sb.from('lu_execucoes').insert([payload]);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Execução registrada!');
+  }
+  STATE.luExecucoes.unshift(payload);
   closeModal('modal-lu-exec');
   renderLubrificacao();
 }
@@ -3189,7 +3419,6 @@ function renderColaboradores() {
 
   document.getElementById('colab-count-label').textContent = `${colabs.length} colaborador(es)`;
 
-  const baseLen = DB.colaboradores.length;
   document.getElementById('colab-tbody').innerHTML = colabs.map((c, i) => `
     <tr>
       <td style="font-family:var(--mono);color:var(--muted)">${String(i+1).padStart(3,'0')}</td>
@@ -3197,33 +3426,73 @@ function renderColaboradores() {
       <td>${c.funcao}</td>
       <td>${c.setor}</td>
       <td>
-        ${i >= baseLen
-          ? `<button class="btn btn-danger btn-sm" onclick="excluirColaborador(${i})">Excluir</button>`
-          : '<span style="color:var(--muted);font-size:.75rem">cadastro base</span>'}
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="editarColaborador(${i})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirColaborador(${i})">Excluir</button>
+        </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nenhum colaborador cadastrado</td></tr>';
 }
 
-function salvarColaborador() {
+function openModalColaborador() {
+  document.getElementById('fc-edit-idx').value = '';
+  document.getElementById('fc-nome').value = '';
+  document.getElementById('fc-setor').value = '';
+  document.querySelector('#modal-colaborador .modal-title').textContent = 'Novo Colaborador';
+  openModal('modal-colaborador');
+}
+
+function editarColaborador(i) {
+  const c = allColaboradores()[i];
+  document.getElementById('fc-edit-idx').value = i;
+  document.getElementById('fc-nome').value = c.nome;
+  document.getElementById('fc-funcao').value = c.funcao;
+  document.getElementById('fc-setor').value = c.setor;
+  document.querySelector('#modal-colaborador .modal-title').textContent = 'Editar Colaborador';
+  openModal('modal-colaborador');
+}
+
+async function salvarColaborador() {
+  const editIdx = document.getElementById('fc-edit-idx').value;
   const nome   = document.getElementById('fc-nome').value.trim();
   const funcao = document.getElementById('fc-funcao').value;
   const setor  = document.getElementById('fc-setor').value.trim();
   if (!nome || !setor) { alert('Preencha nome e setor.'); return; }
-  const extras = JSON.parse(localStorage.getItem('pcm_colaboradores_extra') || '[]');
-  const maxId  = allColaboradores().reduce((m,c) => Math.max(m, c.id||0), 0);
-  extras.push({id: maxId+1, nome, funcao, setor});
-  localStorage.setItem('pcm_colaboradores_extra', JSON.stringify(extras));
+
+  if (editIdx !== '') {
+    const i = parseInt(editIdx);
+    const colab = STATE.colaboradores[i];
+    if (sb && colab && colab.id) {
+      const { error } = await sb.from('colaboradores').update({nome, funcao, setor}).eq('id', colab.id);
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+    }
+    STATE.colaboradores[i] = { ...colab, nome, funcao, setor };
+    showToast('Colaborador atualizado!');
+  } else {
+    const maxId = allColaboradores().reduce((m,c) => Math.max(m, c.id||0), 0);
+    const novoColab = {nome, funcao, setor};
+    if (sb) {
+      const { data: saved, error } = await sb.from('colaboradores').insert([novoColab]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      novoColab.id = saved.id; showToast('Colaborador salvo!');
+    } else { novoColab.id = maxId + 1; }
+    STATE.colaboradores.push(novoColab);
+  }
   closeModal('modal-colaborador');
+  document.getElementById('fc-edit-idx').value = '';
   document.getElementById('fc-nome').value = '';
   document.getElementById('fc-setor').value = '';
+  document.querySelector('#modal-colaborador .modal-title').textContent = 'Novo Colaborador';
   renderColaboradores();
 }
 
-function excluirColaborador(i) {
+async function excluirColaborador(i) {
   if (!confirm('Excluir colaborador?')) return;
-  const extras = JSON.parse(localStorage.getItem('pcm_colaboradores_extra') || '[]');
-  extras.splice(i - DB.colaboradores.length, 1);
-  localStorage.setItem('pcm_colaboradores_extra', JSON.stringify(extras));
+  const colab = STATE.colaboradores[i];
+  if (sb && colab && colab.id) {
+    await sb.from('colaboradores').delete().eq('id', colab.id);
+  }
+  STATE.colaboradores.splice(i, 1);
   renderColaboradores();
 }
 
@@ -3234,17 +3503,33 @@ function renderPagination(containerId, totalPages, current, onChange) {
   const container = document.getElementById(containerId);
   if (!container) return;
   if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+  // Páginas a exibir: sempre 1, última, e current ±2
+  const show = new Set([1, totalPages]);
+  for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) show.add(i);
+  const sorted = [...show].sort((a, b) => a - b);
+
   let html = '';
-  for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="pag-btn ${i===current?'active':''}" onclick="(${onChange})(${i})">${i}</button>`;
+  let prev = 0;
+  for (const p of sorted) {
+    if (p - prev > 1) html += '<span class="pag-ellipsis">…</span>';
+    html += `<button class="pag-btn${p === current ? ' active' : ''}" onclick="(${onChange})(${p})">${p}</button>`;
+    prev = p;
   }
-  container.innerHTML = html;
+
+  container.innerHTML =
+    `<button class="pag-btn" ${current <= 1 ? 'disabled' : ''} onclick="(${onChange})(${current - 1})">‹</button>` +
+    html +
+    `<button class="pag-btn" ${current >= totalPages ? 'disabled' : ''} onclick="(${onChange})(${current + 1})">›</button>`;
 }
 
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
-renderDashboard();
+(async () => {
+  await loadAll();
+  renderDashboard();
+})();
 </script>
 </body>
 </html>
