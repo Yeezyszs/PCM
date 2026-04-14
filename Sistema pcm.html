@@ -928,7 +928,7 @@
         <table>
           <thead>
             <tr>
-              <th>Equipamento</th><th>Componente</th><th>Trimestre</th><th>Data Planejada</th><th>Data Realizada</th><th>Realizado por</th><th>Status</th>
+              <th>Equipamento</th><th>Componente</th><th>Trimestre</th><th>Data Planejada</th><th>Data Realizada</th><th>Realizado por</th><th>Status</th><th>Ação</th>
             </tr>
           </thead>
           <tbody id="prev-tbody"></tbody>
@@ -972,7 +972,7 @@
         <table>
           <thead>
             <tr>
-              <th>Setor</th><th>Equipamento</th><th>Plano</th><th>Item</th><th>Periodicidade</th><th>Qtd</th>
+              <th>Setor</th><th>Equipamento</th><th>Plano</th><th>Item</th><th>Periodicidade</th><th>Qtd</th><th>Ação</th>
             </tr>
           </thead>
           <tbody id="plan-tbody"></tbody>
@@ -1414,10 +1414,11 @@
 <div class="modal-overlay" id="modal-prev">
   <div class="modal" style="max-width:580px;">
     <div class="modal-hd">
-      <div class="modal-title">Nova Manutenção Preventiva</div>
+      <div class="modal-title" id="modal-prev-title">Nova Manutenção Preventiva</div>
       <button class="modal-close" onclick="closeModal('modal-prev')">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="fp-edit-id" value="">
       <div class="form-grid">
         <div class="form-group span2">
           <label>Equipamento</label>
@@ -1461,10 +1462,11 @@
 <div class="modal-overlay" id="modal-plano">
   <div class="modal" style="max-width:540px;">
     <div class="modal-hd">
-      <div class="modal-title">Novo Item de Plano de Manutenção</div>
+      <div class="modal-title" id="modal-plano-title">Novo Item de Plano de Manutenção</div>
       <button class="modal-close" onclick="closeModal('modal-plano')">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="fpl-edit-id" value="">
       <div class="form-grid">
         <div class="form-group">
           <label>Setor</label>
@@ -1618,6 +1620,7 @@ let STATE = {
   ordens: [], equipamentos: [], preventiva: [], planos: [],
   lubrificacao: [], luExecucoes: [], colaboradores: [],
   ferramentasEletrica: [], ferramentasMecanica: [], caixasFerramentas: [],
+  setores: [], // setores extras além dos derivados de equipamentos
   checkState: {},
 };
 
@@ -1680,6 +1683,7 @@ async function loadAll() {
       { data: fEl,       error: e9 },
       { data: fMec,      error: e10},
       { data: caixas,    error: e11},
+      { data: setores,   error: e12},
     ] = await Promise.all([
       sb.from('ordens').select('*').order('id', { ascending: false }),
       sb.from('equipamentos').select('*').order('setor'),
@@ -1692,8 +1696,10 @@ async function loadAll() {
       sb.from('ferramentas').select('*').eq('tipo', 'eletrica').is('caixa', null),
       sb.from('ferramentas').select('*').eq('tipo', 'mecanica').is('caixa', null),
       sb.from('ferramentas').select('*').not('caixa', 'is', null),
+      sb.from('setores').select('*').order('nome'),
     ]);
 
+    // e12 é tolerado: a tabela setores pode não existir ainda
     const errs = [e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11].filter(Boolean);
     if (errs.length) throw new Error(errs.map(e => e.message).join('; '));
 
@@ -1726,6 +1732,7 @@ async function loadAll() {
     STATE.ferramentasEletrica = fEl  || [];
     STATE.ferramentasMecanica = fMec || [];
     STATE.caixasFerramentas   = caixas || [];
+    STATE.setores             = (setores || []).map(s => s.nome);
 
     setLoadingMsg('Pronto!');
     hideLoading();
@@ -2765,29 +2772,69 @@ async function confirmarConclusao() {
 // ══════════════════════════════════════════
 // allPreventiva() → STATE.preventiva
 
+function editarPreventiva(id) {
+  const p = STATE.preventiva.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('fp-edit-id').value = id;
+  document.getElementById('fp-equip').value    = p.equip || '';
+  document.getElementById('fp-comp').value     = p.comp  || '';
+  document.getElementById('fp-trim').value     = p.trim  || '1';
+  document.getElementById('fp-planejada').value= p.planejada || '';
+  document.getElementById('fp-realizada').value= p.realizada || '';
+  document.getElementById('fp-exec').value     = p.exec  || '';
+  document.getElementById('modal-prev-title').textContent = 'Editar Manutenção Preventiva';
+  openModal('modal-prev');
+}
+
+async function excluirPreventiva(id) {
+  if (!confirm('Excluir este registro de preventiva?')) return;
+  if (sb) {
+    const { error } = await sb.from('preventiva').delete().eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+  STATE.preventiva = STATE.preventiva.filter(p => p.id !== id);
+  showToast('Preventiva excluída.');
+  renderPreventiva();
+}
+
 async function salvarPreventiva() {
-  const equip = document.getElementById('fp-equip').value.trim();
-  const comp  = document.getElementById('fp-comp').value.trim();
+  const editId = document.getElementById('fp-edit-id').value;
+  const equip  = document.getElementById('fp-equip').value.trim();
+  const comp   = document.getElementById('fp-comp').value.trim();
   if (!equip || !comp) { alert('Preencha equipamento e componente.'); return; }
-  const novo = {
+  const campos = {
     equip,
     comp,
-    trim: document.getElementById('fp-trim').value,
+    trim:      document.getElementById('fp-trim').value,
     planejada: document.getElementById('fp-planejada').value || null,
     realizada: document.getElementById('fp-realizada').value || null,
-    exec: document.getElementById('fp-exec').value.trim() || null,
+    exec:      document.getElementById('fp-exec').value.trim() || null,
   };
-  if (sb) {
-    const { data: saved, error } = await sb.from('preventiva').insert([{
-      equip: novo.equip, comp: novo.comp, trimestre: novo.trim,
-      planejada: novo.planejada || null, realizada: novo.realizada || null, exec: novo.exec || null
-    }]).select().single();
-    if (error) { showToast('Erro: ' + error.message, true); return; }
-    novo.id = saved.id; showToast('Preventiva salva!');
+
+  if (editId) {
+    if (sb) {
+      const { error } = await sb.from('preventiva').update({
+        equip: campos.equip, comp: campos.comp, trimestre: campos.trim,
+        planejada: campos.planejada, realizada: campos.realizada, exec: campos.exec,
+      }).eq('id', parseInt(editId));
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+    }
+    const idx = STATE.preventiva.findIndex(p => p.id === parseInt(editId));
+    if (idx !== -1) STATE.preventiva[idx] = { ...STATE.preventiva[idx], ...campos };
+    showToast('Preventiva atualizada!');
+  } else {
+    if (sb) {
+      const { data: saved, error } = await sb.from('preventiva').insert([{
+        equip: campos.equip, comp: campos.comp, trimestre: campos.trim,
+        planejada: campos.planejada, realizada: campos.realizada, exec: campos.exec,
+      }]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      campos.id = saved.id;
+      showToast('Preventiva salva!');
+    }
+    STATE.preventiva.unshift(campos);
   }
-  STATE.preventiva.unshift(novo);
   closeModal('modal-prev');
-  ['fp-equip','fp-comp','fp-planejada','fp-realizada','fp-exec'].forEach(id => document.getElementById(id).value = '');
   renderPreventiva();
 }
 
@@ -2830,6 +2877,10 @@ function renderPreventiva() {
       <td style="font-family:var(--mono);font-size:.78rem">${h(p.realizada)||'—'}</td>
       <td style="font-size:.78rem">${h(p.exec)||'—'}</td>
       <td>${status}</td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="editarPreventiva(${p.id})">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirPreventiva(${p.id})">Excluir</button>
+      </div></td>
     </tr>`;
   }).join('');
 
@@ -2842,27 +2893,62 @@ function renderPreventiva() {
 // ══════════════════════════════════════════
 // allPlanos() → STATE.planos
 
-async function salvarPlano() {
-  const setor = document.getElementById('fpl-setor').value.trim().toUpperCase();
-  const equip = document.getElementById('fpl-equip').value.trim();
-  const item  = document.getElementById('fpl-item').value.trim();
-  if (!setor || !equip || !item) { alert('Preencha setor, equipamento e descrição do item.'); return; }
-  const novo = {
-    setor,
-    equip,
-    plano: document.getElementById('fpl-plano').value,
-    item,
-    period: document.getElementById('fpl-period').value,
-    qty: parseInt(document.getElementById('fpl-qty').value) || null,
-  };
+function editarPlano(id) {
+  const p = STATE.planos.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('fpl-edit-id').value  = id;
+  document.getElementById('fpl-setor').value    = p.setor  || '';
+  document.getElementById('fpl-equip').value    = p.equip  || '';
+  document.getElementById('fpl-plano').value    = p.plano  || 'LU';
+  document.getElementById('fpl-item').value     = p.item   || '';
+  document.getElementById('fpl-period').value   = p.period || '30 dias';
+  document.getElementById('fpl-qty').value      = p.qty    || '';
+  document.getElementById('modal-plano-title').textContent = 'Editar Item de Plano';
+  openModal('modal-plano');
+}
+
+async function excluirPlano(id) {
+  if (!confirm('Excluir este item do plano?')) return;
   if (sb) {
-    const { data: s, error } = await sb.from('planos').insert([{setor:novo.setor,equip:novo.equip,plano:novo.plano,item:novo.item,period:novo.period,qty:novo.qty||null}]).select().single();
-    if (error) { showToast('Erro: '+error.message,true); return; }
-    novo.id = s.id; showToast('Plano salvo!');
+    const { error } = await sb.from('planos').delete().eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
   }
-  STATE.planos.push(novo);
+  STATE.planos = STATE.planos.filter(p => p.id !== id);
+  showToast('Item excluído.');
+  renderPlanos();
+}
+
+async function salvarPlano() {
+  const editId = document.getElementById('fpl-edit-id').value;
+  const setor  = document.getElementById('fpl-setor').value.trim().toUpperCase();
+  const equip  = document.getElementById('fpl-equip').value.trim();
+  const item   = document.getElementById('fpl-item').value.trim();
+  if (!setor || !equip || !item) { alert('Preencha setor, equipamento e descrição do item.'); return; }
+  const campos = {
+    setor, equip, item,
+    plano:  document.getElementById('fpl-plano').value,
+    period: document.getElementById('fpl-period').value,
+    qty:    parseInt(document.getElementById('fpl-qty').value) || null,
+  };
+
+  if (editId) {
+    if (sb) {
+      const { error } = await sb.from('planos').update(campos).eq('id', parseInt(editId));
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+    }
+    const idx = STATE.planos.findIndex(p => p.id === parseInt(editId));
+    if (idx !== -1) STATE.planos[idx] = { ...STATE.planos[idx], ...campos };
+    showToast('Plano atualizado!');
+  } else {
+    if (sb) {
+      const { data: s, error } = await sb.from('planos').insert([campos]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      campos.id = s.id;
+      showToast('Plano salvo!');
+    }
+    STATE.planos.push(campos);
+  }
   closeModal('modal-plano');
-  ['fpl-setor','fpl-equip','fpl-item','fpl-qty'].forEach(id => document.getElementById(id).value = '');
   renderPlanos();
 }
 
@@ -2898,6 +2984,10 @@ function renderPlanos() {
     <td style="font-size:.8rem">${h(p.item)}</td>
     <td style="font-family:var(--mono);font-size:.78rem;color:var(--accent2)">${h(p.period)}</td>
     <td style="font-family:var(--mono);font-size:.78rem">${p.qty||'—'}</td>
+    <td><div style="display:flex;gap:6px">
+      <button class="btn btn-secondary btn-sm" onclick="editarPlano(${p.id})">Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="excluirPlano(${p.id})">Excluir</button>
+    </div></td>
   </tr>`).join('');
 
   document.getElementById('plan-count-label').textContent = `${total} registros`;
@@ -2912,9 +3002,10 @@ let selectedSetor = null;
 // allEquipamentos() → STATE.equipamentos
 
 function allSetores() {
-  const fromEquip = [...new Set(allEquipamentos().map(e => e.setor.trim().toUpperCase()))];
+  const fromEquip  = allEquipamentos().map(e => e.setor.trim().toUpperCase());
+  const fromState  = STATE.setores.map(s => s.trim().toUpperCase());
   const base = ['EXTRAÇÃO','SECAGEM','CALDEIRA','ENSAQUE','OFICINA','POÇO'];
-  return [...new Set([...base, ...fromEquip])].sort();
+  return [...new Set([...base, ...fromEquip, ...fromState])].sort();
 }
 
 const SETOR_ICONS = {
@@ -3153,6 +3244,8 @@ function openModal(id) {
   }
 
   if (id === 'modal-prev') {
+    document.getElementById('fp-edit-id').value = '';
+    document.getElementById('modal-prev-title').textContent = 'Nova Manutenção Preventiva';
     ['fp-equip','fp-comp','fp-planejada','fp-realizada','fp-exec'].forEach(fid => {
       document.getElementById(fid).value = '';
     });
@@ -3160,6 +3253,8 @@ function openModal(id) {
   }
 
   if (id === 'modal-plano') {
+    document.getElementById('fpl-edit-id').value = '';
+    document.getElementById('modal-plano-title').textContent = 'Novo Item de Plano de Manutenção';
     ['fpl-setor','fpl-equip','fpl-item','fpl-qty'].forEach(fid => {
       document.getElementById(fid).value = '';
     });
@@ -3278,13 +3373,19 @@ async function excluirItem(tipo, i) {
 }
 
 // ── Setores ──
+const BASE_SETORES = ['EXTRAÇÃO','SECAGEM','CALDEIRA','ENSAQUE','OFICINA','POÇO'];
+
+function isSetorExtra(s) {
+  const fromEquip = allEquipamentos().map(e => e.setor.trim().toUpperCase());
+  return !BASE_SETORES.includes(s) && !fromEquip.includes(s);
+}
+
 function renderCadSetores() {
   const setores = allSetores();
-  const equips = allEquipamentos();
-  const extrasSetores = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
-  document.getElementById('cad-setores-tbody').innerHTML = setores.map((s,i) => {
-    const count = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
-    const isExtra = extrasSetores.some(x => x.nome.toUpperCase() === s);
+  const equips  = allEquipamentos();
+  document.getElementById('cad-setores-tbody').innerHTML = setores.map(s => {
+    const count   = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
+    const isExtra = isSetorExtra(s);
     return `<tr>
       <td style="font-weight:700">${setorIcon(s)} ${h(s)}</td>
       <td style="font-family:var(--mono);color:var(--muted)">${count}</td>
@@ -3307,18 +3408,32 @@ function editarSetor(nome) {
   document.getElementById('modal-cad-setor').classList.add('open');
 }
 
-function salvarSetor() {
+async function salvarSetor() {
   const original = document.getElementById('cs-edit-idx').value;
   const nome = document.getElementById('cs-nome').value.trim().toUpperCase();
   if (!nome) { alert('Informe o nome do setor.'); return; }
-  const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
+
   if (original) {
-    const idx = extras.findIndex(s => s.nome.toUpperCase() === original);
-    if (idx !== -1) extras[idx].nome = nome;
+    // editar: renomear no Supabase e em STATE
+    if (sb) {
+      const { error } = await sb.from('setores').update({ nome }).eq('nome', original);
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+    }
+    const idx = STATE.setores.findIndex(s => s.toUpperCase() === original);
+    if (idx !== -1) STATE.setores[idx] = nome;
+    else if (!STATE.setores.includes(nome)) STATE.setores.push(nome);
   } else {
-    if (!extras.some(s => s.nome.toUpperCase() === nome)) extras.push({nome});
+    // novo setor
+    if (STATE.setores.map(s => s.toUpperCase()).includes(nome)) {
+      showToast('Setor já existe.', true); return;
+    }
+    if (sb) {
+      const { error } = await sb.from('setores').insert([{ nome }]);
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+    }
+    STATE.setores.push(nome);
   }
-  localStorage.setItem('pcm_setores_extra', JSON.stringify(extras));
+  showToast('Setor salvo!');
   closeModal('modal-cad-setor');
   document.getElementById('cs-nome').value = '';
   document.getElementById('cs-edit-idx').value = '';
@@ -3326,11 +3441,13 @@ function salvarSetor() {
   renderEquipamentos();
 }
 
-function excluirSetor(nome) {
+async function excluirSetor(nome) {
   if (!confirm(`Excluir setor "${nome}"?`)) return;
-  const extras = JSON.parse(localStorage.getItem('pcm_setores_extra') || '[]');
-  const updated = extras.filter(s => s.nome.toUpperCase() !== nome);
-  localStorage.setItem('pcm_setores_extra', JSON.stringify(updated));
+  if (sb) {
+    const { error } = await sb.from('setores').delete().eq('nome', nome);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+  STATE.setores = STATE.setores.filter(s => s.toUpperCase() !== nome);
   renderCadSetores();
   renderEquipamentos();
 }
@@ -3459,7 +3576,7 @@ function renderLubrificacao() {
     </tr>`;
   }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nenhum item encontrado</td></tr>';
 
-  renderPagination('lu-pag', totalPages, luPage, 'p => { luPage=p; renderLubrificacao(); }');
+  renderPagination('lu-pag', totalPages, luPage, p => { luPage=p; renderLubrificacao(); });
 }
 
 function populateLuSetores() {
