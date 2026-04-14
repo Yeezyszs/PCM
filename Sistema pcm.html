@@ -1621,6 +1621,10 @@ let STATE = {
   checkState: {},
 };
 
+// ── helper anti-XSS ──
+const h = s => s == null ? '' : String(s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
 // ── helpers de leitura ──
 function allOrdens()           { return STATE.ordens; }
 function allEquipamentos()     { return STATE.equipamentos; }
@@ -1701,13 +1705,23 @@ async function loadAll() {
         .map(c => ({ qty: c.qty, nome: c.nome }))
     }));
 
-    // Normalizar campo descricao → desc para compatibilidade com o código existente
-    STATE.ordens = (ordens || []).map(o => ({ ...o, desc: o.descricao }));
+    // Normalizar campo descricao → desc e snake_case → camelCase para compatibilidade
+    STATE.ordens = (ordens || []).map(o => ({
+      ...o,
+      desc:      o.descricao,
+      dataProg:  o.data_prog,
+      dataConcl: o.data_concl,
+    }));
 
-    STATE.preventiva       = prev    || [];
+    // Normalizar trimestre → trim (usado em renderPreventiva)
+    STATE.preventiva = (prev || []).map(p => ({ ...p, trim: p.trimestre ?? p.trim }));
     STATE.planos           = planos  || [];
     STATE.lubrificacao     = lu      || [];
-    STATE.luExecucoes      = luExec  || [];
+    // Computar key para matching em renderLubrificacao
+    STATE.luExecucoes = (luExec || []).map(e => ({
+      ...e,
+      key: `${e.setor}||${e.equip}||${e.item}`,
+    }));
     STATE.colaboradores    = colab   || [];
     STATE.ferramentasEletrica = fEl  || [];
     STATE.ferramentasMecanica = fMec || [];
@@ -2612,13 +2626,13 @@ function dashRow(o) {
   return `<tr style="cursor:pointer" onclick="openDetail(${o.id})">
     <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
     <td style="font-family:var(--mono);font-size:.75rem">${dataFmt}</td>
-    <td style="font-size:.82rem">${o.req}</td>
-    <td><span style="color:var(--accent);font-size:.75rem;font-weight:700">${o.setor.trim()}</span></td>
-    <td><span class="badge ${o.tipo==='Corretiva'?'badge-red':o.tipo==='melhoria'?'badge-blue':'badge-green'}">${o.tipo}</span></td>
-    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem">${o.desc}</td>
-    <td style="font-size:.78rem">${o.exec||'—'}</td>
+    <td style="font-size:.82rem">${h(o.req)}</td>
+    <td><span style="color:var(--accent);font-size:.75rem;font-weight:700">${h(o.setor.trim())}</span></td>
+    <td><span class="badge ${o.tipo==='Corretiva'?'badge-red':o.tipo==='melhoria'?'badge-blue':'badge-green'}">${h(o.tipo)}</span></td>
+    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem">${h(o.desc)}</td>
+    <td style="font-size:.78rem">${h(o.exec)||'—'}</td>
     <td>${statusBadge}</td>
-    <td><div class="prio ${pClass}"><div class="prio-dot"></div>${o.prioridade}</div></td>
+    <td><div class="prio ${pClass}"><div class="prio-dot"></div>${h(o.prioridade)}</div></td>
   </tr>`;
 }
 
@@ -2637,14 +2651,14 @@ function osRow(o, withAction=false) {
   return `<tr>
     <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
     <td style="font-family:var(--mono);font-size:.75rem">${dataFmt}</td>
-    <td>${o.req}</td>
-    <td><span style="color:var(--accent);font-size:.75rem;font-weight:700">${o.setor.trim()}</span></td>
-    <td><span class="badge ${o.tipo==='Corretiva'?'badge-red':o.tipo==='melhoria'?'badge-blue':'badge-green'}">${o.tipo}</span></td>
-    <td style="color:var(--muted);font-size:.78rem">${o.natureza}</td>
-    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.desc}</td>
-    <td style="font-size:.78rem">${o.exec||'—'}</td>
+    <td>${h(o.req)}</td>
+    <td><span style="color:var(--accent);font-size:.75rem;font-weight:700">${h(o.setor.trim())}</span></td>
+    <td><span class="badge ${o.tipo==='Corretiva'?'badge-red':o.tipo==='melhoria'?'badge-blue':'badge-green'}">${h(o.tipo)}</span></td>
+    <td style="color:var(--muted);font-size:.78rem">${h(o.natureza)}</td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(o.desc)}</td>
+    <td style="font-size:.78rem">${h(o.exec)||'—'}</td>
     <td>${statusBadge}</td>
-    <td><div class="prio ${pClass}"><div class="prio-dot"></div>${o.prioridade}</div></td>
+    <td><div class="prio ${pClass}"><div class="prio-dot"></div>${h(o.prioridade)}</div></td>
     ${action}
   </tr>`;
 }
@@ -2655,25 +2669,25 @@ function openDetail(id) {
   document.getElementById('detail-title').textContent = `Ordem de Serviço #${o.id}`;
   document.getElementById('detail-body').innerHTML = `
     <div class="os-detail">
-      <div class="os-field"><span class="lbl">Data</span><span class="val">${o.data||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Hora</span><span class="val">${o.hora||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Requisitante</span><span class="val">${o.req}</span></div>
-      <div class="os-field"><span class="lbl">Setor</span><span class="val">${o.setor.trim()}</span></div>
-      <div class="os-field"><span class="lbl">Tipo</span><span class="val">${o.tipo}</span></div>
-      <div class="os-field"><span class="lbl">Natureza</span><span class="val">${o.natureza}</span></div>
-      <div class="os-field"><span class="lbl">Prioridade</span><span class="val">${o.prioridade}</span></div>
-      <div class="os-field"><span class="lbl">Status</span><span class="val">${o.status}</span></div>
-      <div class="os-field"><span class="lbl">Data Programada</span><span class="val">${o.dataProg||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Data Conclusão</span><span class="val">${o.dataConcl||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Executante</span><span class="val">${o.exec||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Data</span><span class="val">${h(o.data)||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Hora</span><span class="val">${h(o.hora)||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Requisitante</span><span class="val">${h(o.req)}</span></div>
+      <div class="os-field"><span class="lbl">Setor</span><span class="val">${h(o.setor.trim())}</span></div>
+      <div class="os-field"><span class="lbl">Tipo</span><span class="val">${h(o.tipo)}</span></div>
+      <div class="os-field"><span class="lbl">Natureza</span><span class="val">${h(o.natureza)}</span></div>
+      <div class="os-field"><span class="lbl">Prioridade</span><span class="val">${h(o.prioridade)}</span></div>
+      <div class="os-field"><span class="lbl">Status</span><span class="val">${h(o.status)}</span></div>
+      <div class="os-field"><span class="lbl">Data Programada</span><span class="val">${h(o.dataProg)||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Data Conclusão</span><span class="val">${h(o.dataConcl)||'—'}</span></div>
+      <div class="os-field"><span class="lbl">Executante</span><span class="val">${h(o.exec)||'—'}</span></div>
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Descrição</div>
-      <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:.85rem">${o.desc}</div>
+      <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:.85rem">${h(o.desc)}</div>
     </div>
     ${o.realizado ? `<div>
       <div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Serviço Realizado</div>
-      <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">${o.realizado}</div>
+      <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">${h(o.realizado)}</div>
     </div>` : ''}
   `;
   // botão concluir — só para Em Aberto
@@ -2809,12 +2823,12 @@ function renderPreventiva() {
         ? '<span class="badge badge-red">⚠ Atrasado</span>'
         : '<span class="badge badge-yellow">Pendente</span>';
     return `<tr>
-      <td style="font-weight:600;font-size:.82rem">${p.equip}</td>
-      <td style="font-size:.8rem;color:var(--muted)">${p.comp}</td>
-      <td><span class="badge badge-gray">${p.trim}º Trim.</span></td>
-      <td style="font-family:var(--mono);font-size:.78rem">${p.planejada||'—'}</td>
-      <td style="font-family:var(--mono);font-size:.78rem">${p.realizada||'—'}</td>
-      <td style="font-size:.78rem">${p.exec||'—'}</td>
+      <td style="font-weight:600;font-size:.82rem">${h(p.equip)}</td>
+      <td style="font-size:.8rem;color:var(--muted)">${h(p.comp)}</td>
+      <td><span class="badge badge-gray">${h(p.trim)}º Trim.</span></td>
+      <td style="font-family:var(--mono);font-size:.78rem">${h(p.planejada)||'—'}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${h(p.realizada)||'—'}</td>
+      <td style="font-size:.78rem">${h(p.exec)||'—'}</td>
       <td>${status}</td>
     </tr>`;
   }).join('');
@@ -2878,11 +2892,11 @@ function renderPlanos() {
   const tagClass = { LU: 'tag-lu', PRM: 'tag-prm', IRM: 'tag-irm' };
 
   document.getElementById('plan-tbody').innerHTML = slice.map(p => `<tr>
-    <td style="color:var(--accent);font-size:.78rem;font-weight:700">${p.setor}</td>
-    <td style="font-weight:600;font-size:.82rem">${p.equip}</td>
-    <td><span class="plan-tag ${tagClass[p.plano]||''}">${p.plano}</span></td>
-    <td style="font-size:.8rem">${p.item}</td>
-    <td style="font-family:var(--mono);font-size:.78rem;color:var(--accent2)">${p.period}</td>
+    <td style="color:var(--accent);font-size:.78rem;font-weight:700">${h(p.setor)}</td>
+    <td style="font-weight:600;font-size:.82rem">${h(p.equip)}</td>
+    <td><span class="plan-tag ${tagClass[p.plano]||''}">${h(p.plano)}</span></td>
+    <td style="font-size:.8rem">${h(p.item)}</td>
+    <td style="font-family:var(--mono);font-size:.78rem;color:var(--accent2)">${h(p.period)}</td>
     <td style="font-family:var(--mono);font-size:.78rem">${p.qty||'—'}</td>
   </tr>`).join('');
 
@@ -2957,14 +2971,14 @@ function renderEquipCards() {
 
   document.getElementById('eq-grid').innerHTML = equips.length ? equips.map(e => `
     <div class="eq-card">
-      <div class="eq-sector">${e.setor}</div>
-      <div class="eq-name">${e.nome}</div>
+      <div class="eq-sector">${h(e.setor)}</div>
+      <div class="eq-name">${h(e.nome)}</div>
       <div style="font-size:.72rem;color:var(--muted)">${e.componentes.length} componente(s)</div>
       <div class="eq-components">
         ${e.componentes.map(c => `
           <div class="eq-comp">
             <span class="eq-comp-qty">${c.qty}×</span>
-            <span>${c.nome}</span>
+            <span>${h(c.nome)}</span>
           </div>
         `).join('')}
       </div>
@@ -2997,7 +3011,7 @@ function renderFerramentas() {
               STATE.checkState['${type}_${i}']=!STATE.checkState['${type}_${i}'];
               renderFerramentas();
             })()"></div>
-            <span style="${checkState[`${type}_${i}`]?'text-decoration:line-through;color:var(--muted)':''}">${f.nome}</span>
+            <span style="${checkState[`${type}_${i}`]?'text-decoration:line-through;color:var(--muted)':''}">${h(f.nome)}</span>
             <span class="tool-qty">×${f.qty}</span>
           </div>
         `).join('')}
@@ -3033,8 +3047,8 @@ function renderCadEquip() {
   document.getElementById('cad-equip-tbody').innerHTML = equips.length
     ? equips.map((e, i) => `
       <tr>
-        <td style="color:var(--accent);font-size:.78rem;font-weight:700">${e.setor}</td>
-        <td style="font-weight:600">${e.nome}</td>
+        <td style="color:var(--accent);font-size:.78rem;font-weight:700">${h(e.setor)}</td>
+        <td style="font-weight:600">${h(e.nome)}</td>
         <td style="color:var(--muted);font-size:.78rem">${e.componentes.length} componente(s)</td>
         <td>
           <div style="display:flex;gap:6px;">
@@ -3178,7 +3192,7 @@ function renderCadItens() {
 
   document.getElementById('cad-eletrica-tbody').innerHTML = eletrica.map((f,i) => `
     <tr>
-      <td>${f.nome}</td>
+      <td>${h(f.nome)}</td>
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
@@ -3190,7 +3204,7 @@ function renderCadItens() {
 
   document.getElementById('cad-mecanica-tbody').innerHTML = mecanica.map((f,i) => `
     <tr>
-      <td>${f.nome}</td>
+      <td>${h(f.nome)}</td>
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
@@ -3272,7 +3286,7 @@ function renderCadSetores() {
     const count = equips.filter(e => e.setor.trim().toUpperCase() === s).length;
     const isExtra = extrasSetores.some(x => x.nome.toUpperCase() === s);
     return `<tr>
-      <td style="font-weight:700">${setorIcon(s)} ${s}</td>
+      <td style="font-weight:700">${setorIcon(s)} ${h(s)}</td>
       <td style="font-family:var(--mono);color:var(--muted)">${count}</td>
       <td>
         <div style="display:flex;gap:6px">
@@ -3434,13 +3448,13 @@ function renderLubrificacao() {
     }
 
     return `<tr>
-      <td><span style="font-size:.72rem;color:var(--muted)">${l.setor}</span></td>
-      <td style="font-weight:600">${l.equip}</td>
-      <td>${l.item}</td>
-      <td style="font-family:var(--mono);font-size:.78rem">${l.lubrificante||'—'}</td>
+      <td><span style="font-size:.72rem;color:var(--muted)">${h(l.setor)}</span></td>
+      <td style="font-weight:600">${h(l.equip)}</td>
+      <td>${h(l.item)}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${h(l.lubrificante)||'—'}</td>
       <td style="font-family:var(--mono);text-align:center">${l.bombadas||'—'}</td>
       <td>${luFreqBadge(l.frequencia)}</td>
-      <td style="font-family:var(--mono);font-size:.78rem">${ultima ? ultima.data + '<br><span style="color:var(--muted);font-size:.72rem">'+ultima.exec+'</span>' : '—'}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${ultima ? h(ultima.data) + '<br><span style="color:var(--muted);font-size:.72rem">'+h(ultima.exec)+'</span>' : '—'}</td>
       <td>${status}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Nenhum item encontrado</td></tr>';
@@ -3487,13 +3501,14 @@ async function salvarLuExec() {
   if (!setor || !equip || !item || !data || !exec) {
     alert('Preencha todos os campos obrigatórios.'); return;
   }
-  const payload = { setor, equip, item, data, exec, obs: document.getElementById('fle-obs').value };
+  const obs = document.getElementById('fle-obs').value;
+  const key = `${setor}||${equip}||${item}`;
   if (sb) {
-    const { error } = await sb.from('lu_execucoes').insert([payload]);
+    const { error } = await sb.from('lu_execucoes').insert([{ setor, equip, item, data, exec, obs }]);
     if (error) { showToast('Erro: ' + error.message, true); return; }
     showToast('Execução registrada!');
   }
-  STATE.luExecucoes.unshift(payload);
+  STATE.luExecucoes.unshift({ setor, equip, item, data, exec, obs, key });
   closeModal('modal-lu-exec');
   renderLubrificacao();
 }
@@ -3512,9 +3527,9 @@ function renderColaboradores() {
   document.getElementById('colab-tbody').innerHTML = colabs.map((c, i) => `
     <tr>
       <td style="font-family:var(--mono);color:var(--muted)">${String(i+1).padStart(3,'0')}</td>
-      <td style="font-weight:700">${c.nome}</td>
-      <td>${c.funcao}</td>
-      <td>${c.setor}</td>
+      <td style="font-weight:700">${h(c.nome)}</td>
+      <td>${h(c.funcao)}</td>
+      <td>${h(c.setor)}</td>
       <td>
         <div style="display:flex;gap:6px">
           <button class="btn btn-secondary btn-sm" onclick="editarColaborador(${i})">Editar</button>
