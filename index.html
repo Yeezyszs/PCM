@@ -1439,8 +1439,9 @@
                 <tr>
                   <th>Data</th>
                   <th>Tipo</th>
+                  <th>Setor</th>
+                  <th>Turno</th>
                   <th>Motivo</th>
-                  <th>Equipamento</th>
                   <th class="val-col">Horas</th>
                   <th></th>
                 </tr>
@@ -1451,6 +1452,49 @@
               <span>Total de horas paradas no período:</span>
               <span class="val" id="parada-total-footer">0,0 h</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico: Evolução Mensal de Paradas -->
+      <div class="ind-grid">
+        <div class="kpi-card kpi-wide">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Evolução Mensal de Paradas (h) — últimos 12 meses</div>
+          </div>
+          <div class="kpi-chart-wrap" style="height:200px;">
+            <canvas id="chart-paradas-mensal"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos: Paradas por Tipo · Setor · Turno -->
+      <div class="ind-grid">
+        <!-- Tipo -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Paradas por Tipo</div>
+          </div>
+          <div class="kpi-chart-wrap" style="height:180px;">
+            <canvas id="chart-paradas-tipo"></canvas>
+          </div>
+        </div>
+        <!-- Setor -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Paradas por Setor (h)</div>
+          </div>
+          <div class="kpi-chart-wrap" style="height:180px;">
+            <canvas id="chart-paradas-setor"></canvas>
+          </div>
+        </div>
+        <!-- Turno -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Paradas por Turno</div>
+          </div>
+          <div class="kpi-chart-wrap" style="height:180px;">
+            <canvas id="chart-paradas-turno"></canvas>
           </div>
         </div>
       </div>
@@ -1961,8 +2005,29 @@
           <textarea id="parada-motivo" placeholder="Descreva o motivo da parada…" rows="3" style="resize:vertical"></textarea>
         </div>
         <div class="form-group">
-          <label>Equipamento (opcional)</label>
-          <input type="text" id="parada-equipamento" placeholder="Ex: Cevadeira">
+          <label>Setor / Equipamento</label>
+          <select id="parada-equipamento">
+            <option value="">— Selecione —</option>
+            <option value="Forno 1">Forno 1</option>
+            <option value="Forno 2">Forno 2</option>
+            <option value="Extração">Extração</option>
+            <option value="Ensaque 1">Ensaque 1</option>
+            <option value="Ensaque 2">Ensaque 2</option>
+            <option value="Descarga">Descarga</option>
+            <option value="Caldeira">Caldeira</option>
+            <option value="Secagem">Secagem</option>
+            <option value="Geral">Geral</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Turno</label>
+          <select id="parada-turno">
+            <option value="">— Selecione —</option>
+            <option value="1° Turno">1° Turno</option>
+            <option value="2° Turno">2° Turno</option>
+            <option value="Revezamento">Revezamento</option>
+          </select>
         </div>
         <div class="form-group">
           <label>O.S. Relacionada (opcional)</label>
@@ -4244,6 +4309,8 @@ const IND_PERIODOS = [
 
 // Instâncias Chart.js para evitar duplicação
 let _chartDisp = null, _chartMttr = null, _chartCustos = null;
+let _chartParadasMensal = null, _chartParadasTipo = null,
+    _chartParadasSetor  = null, _chartParadasTurno = null;
 
 function setIndPeriodo(key) {
   indPeriodo = key;
@@ -4372,8 +4439,12 @@ function renderIndicadores() {
   // ── Horas planejadas — tabela editável ──
   renderProducao();
 
-  // ── Paradas — tabela e sub-totais ──
+  // ── Paradas — tabela, sub-totais e gráficos ──
   renderParadas(paradasPerio);
+  renderChartParadasMensal();
+  renderChartParadasTipo(paradasPerio);
+  renderChartParadasSetor(paradasPerio);
+  renderChartParadasTurno(paradasPerio);
 
   // ── Custos ──
   const custosPerio = STATE.custos.filter(c => new Date(c.data + 'T00:00:00') >= corte);
@@ -4545,6 +4616,159 @@ function renderCustos(custos) {
   document.getElementById('custo-total-val').textContent = 'R$ ' + fmtR(total);
 }
 
+// ══════════════════════════════════════════
+// GRÁFICOS DE PARADAS
+// ══════════════════════════════════════════
+
+const CHART_COLORS = {
+  'Manutenção / Quebra':    'rgba(248,113,113,.8)',
+  'Queda de Energia':       'rgba(251,191,36,.8)',
+  'Falta de Matéria Prima': 'rgba(167,139,250,.8)',
+  'Outro':                  'rgba(148,163,184,.8)',
+};
+const CHART_COLORS_TURNO = {
+  '1° Turno':    'rgba(96,165,250,.8)',
+  '2° Turno':    'rgba(52,211,153,.8)',
+  'Revezamento': 'rgba(251,191,36,.8)',
+};
+
+// Paleta para setores (até 10)
+const SETOR_PALETTE = [
+  'rgba(96,165,250,.8)', 'rgba(52,211,153,.8)', 'rgba(248,113,113,.8)',
+  'rgba(251,191,36,.8)', 'rgba(167,139,250,.8)', 'rgba(34,211,238,.8)',
+  'rgba(249,115,22,.8)', 'rgba(236,72,153,.8)',  'rgba(16,185,129,.8)',
+  'rgba(148,163,184,.8)',
+];
+
+const CHART_OPT_BASE = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#7ca3c8', boxWidth: 12, font: { size: 11 } } } },
+};
+const CHART_SCALE_BASE = {
+  grid: { color: 'rgba(255,255,255,.07)' }, ticks: { color: '#7ca3c8' },
+};
+
+// ── 1. Evolução Mensal de Paradas (barras empilhadas por tipo) ──
+function renderChartParadasMensal() {
+  const hoje = new Date();
+  const meses = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push({
+      ano: d.getFullYear(), mes: d.getMonth() + 1,
+      label: d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+    });
+  }
+
+  const tipos = ['Manutenção / Quebra', 'Queda de Energia', 'Falta de Matéria Prima', 'Outro'];
+  const datasets = tipos.map(tipo => ({
+    label: tipo,
+    data: meses.map(m => {
+      const ini = new Date(m.ano, m.mes - 1, 1);
+      const fim = new Date(m.ano, m.mes, 1);
+      return STATE.paradas
+        .filter(p => p.tipo === tipo && new Date(p.data + 'T00:00:00') >= ini && new Date(p.data + 'T00:00:00') < fim)
+        .reduce((s, p) => s + (parseFloat(p.horas) || 0), 0) || null;
+    }),
+    backgroundColor: CHART_COLORS[tipo],
+    borderRadius: 3,
+    stack: 'paradas',
+  }));
+
+  const ctx = document.getElementById('chart-paradas-mensal');
+  if (!ctx) return;
+  if (_chartParadasMensal) { _chartParadasMensal.destroy(); _chartParadasMensal = null; }
+  _chartParadasMensal = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: meses.map(m => m.label), datasets },
+    options: {
+      ...CHART_OPT_BASE,
+      scales: {
+        x: { stacked: true, ...CHART_SCALE_BASE },
+        y: { stacked: true, ...CHART_SCALE_BASE, ticks: { color: '#7ca3c8', callback: v => v + 'h' } },
+      },
+    },
+  });
+}
+
+// ── 2. Paradas por Tipo (rosca) ──
+function renderChartParadasTipo(paradas) {
+  const tipos = ['Manutenção / Quebra', 'Queda de Energia', 'Falta de Matéria Prima', 'Outro'];
+  const totais = tipos.map(t => paradas.filter(p => p.tipo === t).reduce((s, p) => s + (parseFloat(p.horas) || 0), 0));
+
+  const ctx = document.getElementById('chart-paradas-tipo');
+  if (!ctx) return;
+  if (_chartParadasTipo) { _chartParadasTipo.destroy(); _chartParadasTipo = null; }
+  _chartParadasTipo = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: tipos,
+      datasets: [{ data: totais, backgroundColor: tipos.map(t => CHART_COLORS[t]), borderWidth: 0 }],
+    },
+    options: {
+      ...CHART_OPT_BASE,
+      plugins: { legend: { position: 'bottom', labels: { color: '#7ca3c8', boxWidth: 10, font: { size: 10 } } } },
+    },
+  });
+}
+
+// ── 3. Paradas por Setor (barras horizontais) ──
+function renderChartParadasSetor(paradas) {
+  const mapa = {};
+  paradas.forEach(p => {
+    const k = p.equipamento || 'Não informado';
+    mapa[k] = (mapa[k] || 0) + (parseFloat(p.horas) || 0);
+  });
+  const entries = Object.entries(mapa).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const labels = entries.map(e => e[0]);
+  const data   = entries.map(e => e[1]);
+
+  const ctx = document.getElementById('chart-paradas-setor');
+  if (!ctx) return;
+  if (_chartParadasSetor) { _chartParadasSetor.destroy(); _chartParadasSetor = null; }
+  _chartParadasSetor = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Horas paradas', data, backgroundColor: labels.map((_, i) => SETOR_PALETTE[i % SETOR_PALETTE.length]), borderRadius: 4 }],
+    },
+    options: {
+      ...CHART_OPT_BASE,
+      indexAxis: 'y',
+      scales: {
+        x: { ...CHART_SCALE_BASE, ticks: { color: '#7ca3c8', callback: v => v + 'h' } },
+        y: { ...CHART_SCALE_BASE },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+// ── 4. Paradas por Turno (rosca) ──
+function renderChartParadasTurno(paradas) {
+  const turnos = ['1° Turno', '2° Turno', 'Revezamento'];
+  const semInfo = paradas.filter(p => !p.turno).reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+  const totais  = turnos.map(t => paradas.filter(p => p.turno === t).reduce((s, p) => s + (parseFloat(p.horas) || 0), 0));
+
+  const labels = [...turnos];
+  const data   = [...totais];
+  const colors = turnos.map(t => CHART_COLORS_TURNO[t]);
+
+  if (semInfo > 0) { labels.push('Não informado'); data.push(semInfo); colors.push('rgba(148,163,184,.5)'); }
+
+  const ctx = document.getElementById('chart-paradas-turno');
+  if (!ctx) return;
+  if (_chartParadasTurno) { _chartParadasTurno.destroy(); _chartParadasTurno = null; }
+  _chartParadasTurno = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      ...CHART_OPT_BASE,
+      plugins: { legend: { position: 'bottom', labels: { color: '#7ca3c8', boxWidth: 10, font: { size: 10 } } } },
+    },
+  });
+}
+
 // ── Tabela de Paradas ──
 function paradaTipoCls(tipo) {
   if (tipo === 'Manutenção / Quebra')    return 'ptipo ptipo-manut';
@@ -4576,8 +4800,9 @@ function renderParadas(paradas) {
     <tr>
       <td>${p.data ? new Date(p.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
       <td><span class="${paradaTipoCls(p.tipo)}">${h(p.tipo)}</span></td>
-      <td>${h(p.motivo || '—')}</td>
       <td>${h(p.equipamento || '—')}</td>
+      <td>${h(p.turno || '—')}</td>
+      <td>${h(p.motivo || '—')}</td>
       <td class="val-col">${fmtH(parseFloat(p.horas) || 0)} h</td>
       <td style="text-align:right;">
         <button class="btn btn-secondary btn-sm" style="padding:.2rem .55rem;font-size:.7rem;margin-right:.2rem" onclick="editarParada(${p.id})">✎</button>
@@ -4588,15 +4813,16 @@ function renderParadas(paradas) {
 
 // ── Abrir modal Parada (novo) ──
 function abrirModalParada() {
-  document.getElementById('parada-edit-id').value   = '';
-  document.getElementById('parada-data').value      = new Date().toISOString().split('T')[0];
-  document.getElementById('parada-tipo').value      = 'Manutenção / Quebra';
-  document.getElementById('parada-hora-ini').value  = '';
-  document.getElementById('parada-hora-fim').value  = '';
-  document.getElementById('parada-horas').value     = '';
-  document.getElementById('parada-motivo').value    = '';
+  document.getElementById('parada-edit-id').value     = '';
+  document.getElementById('parada-data').value        = new Date().toISOString().split('T')[0];
+  document.getElementById('parada-tipo').value        = 'Manutenção / Quebra';
+  document.getElementById('parada-hora-ini').value    = '';
+  document.getElementById('parada-hora-fim').value    = '';
+  document.getElementById('parada-horas').value       = '';
+  document.getElementById('parada-motivo').value      = '';
   document.getElementById('parada-equipamento').value = '';
-  document.getElementById('parada-os-id').value     = '';
+  document.getElementById('parada-turno').value       = '';
+  document.getElementById('parada-os-id').value       = '';
   document.getElementById('modal-parada-title').textContent = 'Registrar Parada de Fábrica';
   openModal('modal-parada');
 }
@@ -4605,15 +4831,16 @@ function abrirModalParada() {
 function editarParada(id) {
   const p = STATE.paradas.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('parada-edit-id').value   = id;
-  document.getElementById('parada-data').value      = p.data || '';
-  document.getElementById('parada-tipo').value      = p.tipo || 'Manutenção / Quebra';
-  document.getElementById('parada-hora-ini').value  = p.hora_inicio || '';
-  document.getElementById('parada-hora-fim').value  = p.hora_fim    || '';
-  document.getElementById('parada-horas').value     = p.horas != null ? p.horas : '';
-  document.getElementById('parada-motivo').value    = p.motivo       || '';
-  document.getElementById('parada-equipamento').value = p.equipamento || '';
-  document.getElementById('parada-os-id').value     = p.os_id != null ? p.os_id : '';
+  document.getElementById('parada-edit-id').value     = id;
+  document.getElementById('parada-data').value        = p.data || '';
+  document.getElementById('parada-tipo').value        = p.tipo || 'Manutenção / Quebra';
+  document.getElementById('parada-hora-ini').value    = p.hora_inicio || '';
+  document.getElementById('parada-hora-fim').value    = p.hora_fim    || '';
+  document.getElementById('parada-horas').value       = p.horas != null ? p.horas : '';
+  document.getElementById('parada-motivo').value      = p.motivo       || '';
+  document.getElementById('parada-equipamento').value = p.equipamento  || '';
+  document.getElementById('parada-turno').value       = p.turno        || '';
+  document.getElementById('parada-os-id').value       = p.os_id != null ? p.os_id : '';
   document.getElementById('modal-parada-title').textContent = 'Editar Parada';
   openModal('modal-parada');
 }
@@ -4639,16 +4866,17 @@ async function salvarParada() {
   const hora_fim   = document.getElementById('parada-hora-fim').value || null;
   const horasRaw   = document.getElementById('parada-horas').value;
   const horas      = parseFloat(horasRaw);
-  const motivo     = document.getElementById('parada-motivo').value.trim() || null;
-  const equipamento= document.getElementById('parada-equipamento').value.trim() || null;
-  const osIdRaw    = document.getElementById('parada-os-id').value;
-  const os_id      = osIdRaw !== '' ? parseInt(osIdRaw) : null;
+  const motivo      = document.getElementById('parada-motivo').value.trim() || null;
+  const equipamento = document.getElementById('parada-equipamento').value || null;
+  const turno       = document.getElementById('parada-turno').value || null;
+  const osIdRaw     = document.getElementById('parada-os-id').value;
+  const os_id       = osIdRaw !== '' ? parseInt(osIdRaw) : null;
 
   if (!data || !tipo || isNaN(horas) || horas <= 0) {
     showToast('Preencha data, tipo e duração da parada.', true); return;
   }
 
-  const payload = { data, tipo, hora_inicio, hora_fim, horas, motivo, equipamento, os_id };
+  const payload = { data, tipo, hora_inicio, hora_fim, horas, motivo, equipamento, turno, os_id };
 
   if (sb) {
     if (editId) {
