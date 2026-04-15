@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <title>PCM — Planejamento e Controle de Manutenção</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -743,6 +744,79 @@
     .form-group.span2 { grid-column: span 1; }
     .os-detail { grid-template-columns: 1fr; }
   }
+
+  /* ══ INDICADORES ══ */
+  .ind-period-bar {
+    display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+  }
+  .ind-period-btn {
+    padding: .35rem .9rem; border-radius: 999px; font-size: .8rem; font-weight: 600;
+    border: 1px solid rgba(255,255,255,.15); background: var(--navy-mid);
+    color: var(--white-dim); cursor: pointer; transition: all .2s;
+  }
+  .ind-period-btn.active,
+  .ind-period-btn:hover {
+    background: var(--navy-light); color: var(--white); border-color: var(--navy-light);
+  }
+  .ind-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: var(--navy-mid); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px; padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: .85rem;
+  }
+  .kpi-card-hd {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .kpi-card-title {
+    font-size: .78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--white-dim);
+  }
+  .kpi-badge {
+    font-size: .7rem; font-weight: 700; padding: .2rem .55rem; border-radius: 999px;
+  }
+  .kpi-badge.ok   { background: rgba(52,211,153,.15); color: var(--accent3); }
+  .kpi-badge.warn { background: rgba(251,191,36,.15);  color: #fbbf24; }
+  .kpi-badge.bad  { background: rgba(248,113,113,.15); color: var(--danger); }
+  .kpi-value {
+    font-size: 2.4rem; font-weight: 800; line-height: 1; color: var(--white);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-value span { font-size: 1.1rem; font-weight: 500; color: var(--white-dim); margin-left: .15rem; }
+  .kpi-sub {
+    display: flex; gap: 1.5rem; flex-wrap: wrap;
+  }
+  .kpi-sub-item { display: flex; flex-direction: column; gap: .15rem; }
+  .kpi-sub-label { font-size: .7rem; color: var(--white-dim); text-transform: uppercase; letter-spacing: .06em; }
+  .kpi-sub-val   { font-size: 1.05rem; font-weight: 700; color: var(--white); font-family: 'JetBrains Mono', monospace; }
+  .gauge-wrap { position: relative; height: 10px; background: rgba(255,255,255,.1); border-radius: 999px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 999px; transition: width .6s ease; }
+  .gauge-fill.ok   { background: var(--accent3); }
+  .gauge-fill.warn { background: #fbbf24; }
+  .gauge-fill.bad  { background: var(--danger); }
+  .kpi-chart-wrap { height: 160px; position: relative; }
+  .kpi-wide { grid-column: 1 / -1; }
+  .custo-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+  .custo-table th {
+    text-align: left; padding: .45rem .7rem; font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .07em; color: var(--white-dim);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .custo-table td {
+    padding: .55rem .7rem; border-bottom: 1px solid rgba(255,255,255,.05);
+    color: var(--white-dim);
+  }
+  .custo-table tr:hover td { background: rgba(255,255,255,.03); }
+  .custo-table .val-col { text-align: right; font-family: 'JetBrains Mono', monospace; color: var(--white); }
+  .custo-total {
+    display: flex; justify-content: flex-end; align-items: center; gap: 1rem;
+    padding: .75rem .7rem 0;
+    font-size: .85rem; font-weight: 700; color: var(--white);
+    border-top: 1px solid rgba(255,255,255,.1);
+  }
+  .custo-total .val { font-size: 1.2rem; font-family: 'JetBrains Mono', monospace; color: var(--accent3); }
+  @media (max-width: 600px) { .ind-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -807,6 +881,11 @@
     <div class="nav-section">Administração</div>
     <div class="nav-item" onclick="goPage('cadastros')">
       <span class="nav-icon">🗂️</span> Cadastros
+    </div>
+
+    <div class="nav-section">Análise</div>
+    <div class="nav-item" onclick="goPage('indicadores')">
+      <span class="nav-icon">📈</span> Indicadores
     </div>
   </nav>
 
@@ -1188,6 +1267,160 @@
       </div>
     </div>
 
+    <!-- ══ INDICADORES ══ -->
+    <div id="page-indicadores" class="page">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Indicadores da Fábrica</div>
+          <div class="page-sub">Disponibilidade · MTTR / MTBF · Custos Operacionais</div>
+        </div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('modal-producao')">+ Horas Planejadas</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalCusto()">+ Lançar Custo</button>
+        </div>
+      </div>
+
+      <!-- Filtro de período -->
+      <div class="ind-period-bar" id="ind-period-bar"></div>
+
+      <!-- KPI grid linha 1: Disponibilidade + MTTR + MTBF -->
+      <div class="ind-grid">
+        <!-- Disponibilidade -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Disponibilidade da Fábrica</div>
+            <span class="kpi-badge" id="disp-badge">—</span>
+          </div>
+          <div class="kpi-value" id="disp-value">—<span>%</span></div>
+          <div class="gauge-wrap"><div class="gauge-fill" id="disp-gauge" style="width:0%"></div></div>
+          <div class="kpi-sub">
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Horas Planejadas</div>
+              <div class="kpi-sub-val" id="disp-hplan">—</div>
+            </div>
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Horas Paradas</div>
+              <div class="kpi-sub-val" id="disp-hpara">—</div>
+            </div>
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Horas Operando</div>
+              <div class="kpi-sub-val" id="disp-hoper">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MTTR -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">MTTR — Tempo Médio de Reparo</div>
+            <span class="kpi-badge" id="mttr-badge">—</span>
+          </div>
+          <div class="kpi-value" id="mttr-value">—<span>h</span></div>
+          <div class="kpi-sub">
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Total Paradas (h)</div>
+              <div class="kpi-sub-val" id="mttr-total">—</div>
+            </div>
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Nº de Falhas</div>
+              <div class="kpi-sub-val" id="mttr-falhas">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MTBF -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">MTBF — Tempo Médio Entre Falhas</div>
+            <span class="kpi-badge" id="mtbf-badge">—</span>
+          </div>
+          <div class="kpi-value" id="mtbf-value">—<span>h</span></div>
+          <div class="kpi-sub">
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Horas Operando</div>
+              <div class="kpi-sub-val" id="mtbf-hoper">—</div>
+            </div>
+            <div class="kpi-sub-item">
+              <div class="kpi-sub-label">Nº de Falhas</div>
+              <div class="kpi-sub-val" id="mtbf-falhas">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI linha 2: Disponibilidade histórica (Chart.js) + Custos -->
+      <div class="ind-grid">
+        <!-- Gráfico de disponibilidade mensal -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Disponibilidade Mensal (%)</div>
+          </div>
+          <div class="kpi-chart-wrap">
+            <canvas id="chart-disp"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico MTTR/MTBF mensal -->
+        <div class="kpi-card">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">MTTR / MTBF Mensal (h)</div>
+          </div>
+          <div class="kpi-chart-wrap">
+            <canvas id="chart-mttr"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custos operacionais -->
+      <div class="ind-grid">
+        <div class="kpi-card kpi-wide">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Custos Operacionais</div>
+            <div style="display:flex;gap:1.2rem;align-items:center;">
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Corretiva</div>
+                <div class="kpi-sub-val" id="custo-corretiva">R$ —</div>
+              </div>
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Preventiva</div>
+                <div class="kpi-sub-val" id="custo-preventiva">R$ —</div>
+              </div>
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Materiais</div>
+                <div class="kpi-sub-val" id="custo-materiais">R$ —</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráfico de custos por categoria -->
+          <div class="kpi-chart-wrap" style="height:180px;">
+            <canvas id="chart-custos"></canvas>
+          </div>
+
+          <!-- Tabela de lançamentos -->
+          <div style="overflow-x:auto;margin-top:.5rem;">
+            <table class="custo-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Categoria</th>
+                  <th>Descrição</th>
+                  <th class="val-col">Valor (R$)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="custo-tbody"></tbody>
+            </table>
+            <div class="custo-total">
+              <span>Total no período:</span>
+              <span class="val" id="custo-total-val">R$ 0,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-indicadores -->
+
   </main>
 </div>
 
@@ -1315,6 +1548,10 @@
         <div class="form-group">
           <label>Data de Conclusão</label>
           <input type="date" id="concluir-data">
+        </div>
+        <div class="form-group">
+          <label>Horas de Parada</label>
+          <input type="number" id="concluir-horas-parada" placeholder="Ex: 2.5" min="0" step="0.1">
         </div>
         <div class="form-group">
           <label>Serviço Realizado</label>
@@ -1600,6 +1837,93 @@
   </div>
 </div>
 
+<!-- ══ MODAL HORAS PLANEJADAS (PRODUÇÃO) ══ -->
+<div class="modal-overlay" id="modal-producao">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-prod-title">Horas Planejadas</div>
+      <button class="modal-close" onclick="closeModal('modal-producao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prod-edit-id" value="">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Mês</label>
+          <select id="prod-mes">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ano</label>
+          <input type="number" id="prod-ano" value="2025" min="2020" max="2100">
+        </div>
+        <div class="form-group span2">
+          <label>Horas Planejadas de Operação</label>
+          <input type="number" id="prod-horas" placeholder="Ex: 720" min="1" step="0.5">
+        </div>
+        <div class="form-group span2">
+          <label>Observação</label>
+          <input type="text" id="prod-obs" placeholder="Opcional">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-producao')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarProducao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL LANÇAR CUSTO ══ -->
+<div class="modal-overlay" id="modal-custo">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-custo-title">Lançar Custo</div>
+      <button class="modal-close" onclick="closeModal('modal-custo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="custo-edit-id" value="">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="custo-data">
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="custo-categoria">
+            <option value="Corretiva">Corretiva</option>
+            <option value="Preventiva">Preventiva</option>
+            <option value="Materiais">Materiais</option>
+            <option value="Terceiros">Terceiros</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label>Descrição</label>
+          <input type="text" id="custo-descricao" placeholder="Ex: Rolamento SKF 6205">
+        </div>
+        <div class="form-group">
+          <label>Valor (R$)</label>
+          <input type="number" id="custo-valor" placeholder="0,00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>O.S. Relacionada (opcional)</label>
+          <input type="number" id="custo-os-id" placeholder="Nº da O.S.">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-custo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCusto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════
 // CONFIGURAÇÃO SUPABASE
@@ -1621,6 +1945,8 @@ let STATE = {
   lubrificacao: [], luExecucoes: [], colaboradores: [],
   ferramentasEletrica: [], ferramentasMecanica: [], caixasFerramentas: [],
   setores: [], // setores extras além dos derivados de equipamentos
+  producao: [], // horas planejadas por mês/ano
+  custos: [],   // lançamentos de custos operacionais
   checkState: {},
 };
 
@@ -1684,6 +2010,8 @@ async function loadAll() {
       { data: fMec,      error: e10},
       { data: caixas,    error: e11},
       { data: setores,   error: e12},
+      { data: producao,  error: e13},
+      { data: custos,    error: e14},
     ] = await Promise.all([
       sb.from('ordens').select('*').order('id', { ascending: false }),
       sb.from('equipamentos').select('*').order('setor'),
@@ -1697,9 +2025,11 @@ async function loadAll() {
       sb.from('ferramentas').select('*').eq('tipo', 'mecanica').is('caixa', null),
       sb.from('ferramentas').select('*').not('caixa', 'is', null),
       sb.from('setores').select('*').order('nome'),
+      sb.from('producao').select('*').order('ano').order('mes'),
+      sb.from('custos').select('*').order('data', { ascending: false }),
     ]);
 
-    // e12 é tolerado: a tabela setores pode não existir ainda
+    // e12, e13, e14 são tolerados: tabelas podem não existir ainda
     const errs = [e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11].filter(Boolean);
     if (errs.length) throw new Error(errs.map(e => e.message).join('; '));
 
@@ -1733,6 +2063,8 @@ async function loadAll() {
     STATE.ferramentasMecanica = fMec || [];
     STATE.caixasFerramentas   = caixas || [];
     STATE.setores             = (setores || []).map(s => s.nome);
+    STATE.producao            = producao || [];
+    STATE.custos              = custos   || [];
 
     setLoadingMsg('Pronto!');
     hideLoading();
@@ -2469,6 +2801,7 @@ function goPage(id) {
   if (id === 'cadastros') { switchCadTab('equip'); }
   if (id === 'lubrificacao') { luPage = 1; renderLubrificacao(); }
   if (id === 'colaboradores') renderColaboradores();
+  if (id === 'indicadores') renderIndicadores();
 }
 
 // ══════════════════════════════════════════
@@ -2738,6 +3071,8 @@ async function confirmarConclusao() {
   const exec = document.getElementById('concluir-exec').value.trim() || null;
   const realizado = document.getElementById('concluir-realizado').value.trim() || null;
   const dataConcl = document.getElementById('concluir-data').value || new Date().toISOString().split('T')[0];
+  const horasParadaRaw = document.getElementById('concluir-horas-parada').value;
+  const horas_parada = horasParadaRaw !== '' ? parseFloat(horasParadaRaw) : null;
 
   if (sb) {
     const { error } = await sb.from('ordens').update({
@@ -2745,6 +3080,7 @@ async function confirmarConclusao() {
       data_concl: dataConcl,
       exec,
       realizado,
+      horas_parada,
     }).eq('id', id);
     if (error) { showToast('Erro: ' + error.message, true); return; }
   }
@@ -2758,6 +3094,7 @@ async function confirmarConclusao() {
       data_concl: dataConcl,
       exec,
       realizado,
+      horas_parada,
     };
   }
 
@@ -3743,6 +4080,419 @@ function renderPagination(containerId, totalPages, current, onChange) {
     `<button class="pag-btn" ${current <= 1 ? 'disabled' : ''} onclick="(${onChange})(${current - 1})">‹</button>` +
     html +
     `<button class="pag-btn" ${current >= totalPages ? 'disabled' : ''} onclick="(${onChange})(${current + 1})">›</button>`;
+}
+
+// ══════════════════════════════════════════
+// INDICADORES
+// ══════════════════════════════════════════
+
+// --- estado de período ---
+let indPeriodo = 'mes'; // 'mes' | '3m' | '6m' | 'ano' | 'tudo'
+
+const IND_PERIODOS = [
+  { key: 'mes',  label: '30 dias'   },
+  { key: '3m',   label: '3 meses'   },
+  { key: '6m',   label: '6 meses'   },
+  { key: 'ano',  label: '12 meses'  },
+  { key: 'tudo', label: 'Tudo'      },
+];
+
+// Instâncias Chart.js para evitar duplicação
+let _chartDisp = null, _chartMttr = null, _chartCustos = null;
+
+function setIndPeriodo(key) {
+  indPeriodo = key;
+  renderIndicadores();
+}
+
+function indDataCorte() {
+  const hoje = new Date();
+  if (indPeriodo === 'mes')  { const d = new Date(hoje); d.setDate(d.getDate() - 30);  return d; }
+  if (indPeriodo === '3m')   { const d = new Date(hoje); d.setMonth(d.getMonth() - 3);  return d; }
+  if (indPeriodo === '6m')   { const d = new Date(hoje); d.setMonth(d.getMonth() - 6);  return d; }
+  if (indPeriodo === 'ano')  { const d = new Date(hoje); d.setFullYear(d.getFullYear() - 1); return d; }
+  return new Date('2000-01-01');
+}
+
+function fmtR(v) {
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtH(v) {
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+function dispBadge(pct) {
+  if (pct >= 90) return ['ok',   'Boa'];
+  if (pct >= 75) return ['warn', 'Regular'];
+  return ['bad', 'Crítica'];
+}
+function mttrBadge(h) {
+  if (h <= 2)  return ['ok',   '≤ 2h'];
+  if (h <= 6)  return ['warn', '≤ 6h'];
+  return ['bad', '> 6h'];
+}
+function mtbfBadge(h) {
+  if (h >= 200) return ['ok',   '≥ 200h'];
+  if (h >= 80)  return ['warn', '≥ 80h'];
+  return ['bad', '< 80h'];
+}
+
+function renderIndicadores() {
+  // ── Botões de período ──
+  const bar = document.getElementById('ind-period-bar');
+  if (!bar) return;
+  bar.innerHTML = IND_PERIODOS.map(p =>
+    `<button class="ind-period-btn${indPeriodo === p.key ? ' active' : ''}"
+       onclick="setIndPeriodo('${p.key}')">${p.label}</button>`
+  ).join('');
+
+  const corte = indDataCorte();
+
+  // ── Ordens concluídas no período com horas_parada ──
+  const ordensPerio = STATE.ordens.filter(o => {
+    if (o.status !== 'Concluído') return false;
+    const d = new Date(o.dataConcl || o.data_concl || o.data);
+    return d >= corte;
+  });
+
+  // horas paradas total (somente ordens com horas_parada preenchido)
+  const horasParadas = ordensPerio.reduce((s, o) => s + (parseFloat(o.horas_parada) || 0), 0);
+  const nFalhas      = ordensPerio.filter(o => (parseFloat(o.horas_parada) || 0) > 0).length;
+
+  // horas planejadas no período
+  const prodPerio = STATE.producao.filter(p => {
+    const d = new Date(p.ano, p.mes - 1, 1);
+    return d >= corte;
+  });
+  const horasPlan = prodPerio.reduce((s, p) => s + parseFloat(p.horas_planejadas || 0), 0);
+
+  // Métricas
+  const horasOper  = Math.max(0, horasPlan - horasParadas);
+  const dispPct    = horasPlan > 0 ? (horasOper / horasPlan) * 100 : null;
+  const mttr       = nFalhas > 0 ? horasParadas / nFalhas : null;
+  const mtbf       = nFalhas > 0 ? horasOper / nFalhas : null;
+
+  // ── Disponibilidade ──
+  const dEl = v => document.getElementById(v);
+  if (dispPct !== null) {
+    const [cls, lbl] = dispBadge(dispPct);
+    dEl('disp-value').innerHTML = `${dispPct.toFixed(1)}<span>%</span>`;
+    dEl('disp-badge').textContent = lbl;
+    dEl('disp-badge').className = `kpi-badge ${cls}`;
+    dEl('disp-gauge').style.width = Math.min(100, dispPct) + '%';
+    dEl('disp-gauge').className = `gauge-fill ${cls}`;
+  } else {
+    dEl('disp-value').innerHTML = `—<span>%</span>`;
+    dEl('disp-badge').textContent = 'Sem dados';
+    dEl('disp-badge').className = 'kpi-badge warn';
+    dEl('disp-gauge').style.width = '0%';
+  }
+  dEl('disp-hplan').textContent = horasPlan > 0 ? fmtH(horasPlan) + 'h' : '—';
+  dEl('disp-hpara').textContent = horasParadas > 0 ? fmtH(horasParadas) + 'h' : '0h';
+  dEl('disp-hoper').textContent = horasOper > 0 ? fmtH(horasOper) + 'h' : '—';
+
+  // ── MTTR ──
+  if (mttr !== null) {
+    const [cls, lbl] = mttrBadge(mttr);
+    dEl('mttr-value').innerHTML = `${fmtH(mttr)}<span>h</span>`;
+    dEl('mttr-badge').textContent = lbl;
+    dEl('mttr-badge').className = `kpi-badge ${cls}`;
+  } else {
+    dEl('mttr-value').innerHTML = `—<span>h</span>`;
+    dEl('mttr-badge').textContent = 'Sem dados';
+    dEl('mttr-badge').className = 'kpi-badge warn';
+  }
+  dEl('mttr-total').textContent  = fmtH(horasParadas) + 'h';
+  dEl('mttr-falhas').textContent = nFalhas;
+
+  // ── MTBF ──
+  if (mtbf !== null) {
+    const [cls, lbl] = mtbfBadge(mtbf);
+    dEl('mtbf-value').innerHTML = `${fmtH(mtbf)}<span>h</span>`;
+    dEl('mtbf-badge').textContent = lbl;
+    dEl('mtbf-badge').className = `kpi-badge ${cls}`;
+  } else {
+    dEl('mtbf-value').innerHTML = `—<span>h</span>`;
+    dEl('mtbf-badge').textContent = 'Sem dados';
+    dEl('mtbf-badge').className = 'kpi-badge warn';
+  }
+  dEl('mtbf-hoper').textContent  = horasOper > 0 ? fmtH(horasOper) + 'h' : '—';
+  dEl('mtbf-falhas').textContent = nFalhas;
+
+  // ── Gráficos mensais ──
+  renderChartDisp();
+  renderChartMttr();
+
+  // ── Custos ──
+  const custosPerio = STATE.custos.filter(c => new Date(c.data) >= corte);
+  renderCustos(custosPerio);
+}
+
+// ── Disponibilidade mensal ──
+function renderChartDisp() {
+  // Últimos 12 meses (independente do filtro de período)
+  const hoje = new Date();
+  const meses = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push({ ano: d.getFullYear(), mes: d.getMonth() + 1, label: d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) });
+  }
+
+  const valores = meses.map(m => {
+    const prod = STATE.producao.find(p => p.ano === m.ano && p.mes === m.mes);
+    if (!prod) return null;
+    const hPlan = parseFloat(prod.horas_planejadas) || 0;
+    if (hPlan === 0) return null;
+    const ini = new Date(m.ano, m.mes - 1, 1);
+    const fim = new Date(m.ano, m.mes, 1);
+    const hPara = STATE.ordens
+      .filter(o => {
+        if (o.status !== 'Concluído') return false;
+        const d = new Date(o.dataConcl || o.data_concl || o.data);
+        return d >= ini && d < fim && (parseFloat(o.horas_parada) || 0) > 0;
+      })
+      .reduce((s, o) => s + (parseFloat(o.horas_parada) || 0), 0);
+    return Math.min(100, ((hPlan - hPara) / hPlan) * 100);
+  });
+
+  const ctx = document.getElementById('chart-disp');
+  if (!ctx) return;
+  if (_chartDisp) { _chartDisp.destroy(); _chartDisp = null; }
+  _chartDisp = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: meses.map(m => m.label),
+      datasets: [{
+        label: 'Disponibilidade (%)',
+        data: valores,
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52,211,153,.1)',
+        borderWidth: 2,
+        tension: 0.35,
+        fill: true,
+        pointRadius: 4,
+        spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,.07)' }, ticks: { color: '#7ca3c8', callback: v => v + '%' } },
+        x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#7ca3c8' } },
+      },
+      plugins: { legend: { display: false } },
+    }
+  });
+}
+
+// ── MTTR/MTBF mensal ──
+function renderChartMttr() {
+  const hoje = new Date();
+  const meses = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push({ ano: d.getFullYear(), mes: d.getMonth() + 1, label: d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) });
+  }
+
+  const mttrVals = [], mtbfVals = [];
+  meses.forEach(m => {
+    const prod = STATE.producao.find(p => p.ano === m.ano && p.mes === m.mes);
+    const hPlan = prod ? (parseFloat(prod.horas_planejadas) || 0) : 0;
+    const ini = new Date(m.ano, m.mes - 1, 1);
+    const fim = new Date(m.ano, m.mes, 1);
+    const ordsM = STATE.ordens.filter(o => {
+      if (o.status !== 'Concluído') return false;
+      const d = new Date(o.dataConcl || o.data_concl || o.data);
+      return d >= ini && d < fim && (parseFloat(o.horas_parada) || 0) > 0;
+    });
+    const hPara = ordsM.reduce((s, o) => s + (parseFloat(o.horas_parada) || 0), 0);
+    const nF    = ordsM.length;
+    mttrVals.push(nF > 0 ? hPara / nF : null);
+    mtbfVals.push(nF > 0 && hPlan > 0 ? (hPlan - hPara) / nF : null);
+  });
+
+  const ctx = document.getElementById('chart-mttr');
+  if (!ctx) return;
+  if (_chartMttr) { _chartMttr.destroy(); _chartMttr = null; }
+  _chartMttr = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: meses.map(m => m.label),
+      datasets: [
+        { label: 'MTTR (h)', data: mttrVals, backgroundColor: 'rgba(248,113,113,.7)', borderRadius: 4, spanGaps: true },
+        { label: 'MTBF (h)', data: mtbfVals, backgroundColor: 'rgba(96,165,250,.7)',  borderRadius: 4, spanGaps: true },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,.07)' }, ticks: { color: '#7ca3c8' } },
+        x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#7ca3c8' } },
+      },
+      plugins: { legend: { labels: { color: '#7ca3c8', boxWidth: 12 } } },
+    }
+  });
+}
+
+// ── Custos ──
+function renderCustos(custos) {
+  const cats = ['Corretiva', 'Preventiva', 'Materiais', 'Terceiros', 'Outros'];
+  const totCat = cat => custos.filter(c => c.categoria === cat).reduce((s, c) => s + parseFloat(c.valor || 0), 0);
+
+  document.getElementById('custo-corretiva').textContent  = 'R$ ' + fmtR(totCat('Corretiva'));
+  document.getElementById('custo-preventiva').textContent = 'R$ ' + fmtR(totCat('Preventiva'));
+  document.getElementById('custo-materiais').textContent  = 'R$ ' + fmtR(totCat('Materiais'));
+
+  // Gráfico de pizza
+  const ctx = document.getElementById('chart-custos');
+  if (ctx) {
+    if (_chartCustos) { _chartCustos.destroy(); _chartCustos = null; }
+    const totais = cats.map(c => totCat(c));
+    _chartCustos = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: cats,
+        datasets: [{
+          data: totais,
+          backgroundColor: ['rgba(248,113,113,.8)','rgba(52,211,153,.8)','rgba(96,165,250,.8)','rgba(251,191,36,.8)','rgba(167,139,250,.8)'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { color: '#7ca3c8', boxWidth: 12, font: { size: 11 } } },
+        },
+      }
+    });
+  }
+
+  // Tabela de lançamentos
+  const tbody = document.getElementById('custo-tbody');
+  if (!tbody) return;
+  if (custos.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.2rem">Nenhum lançamento no período.</td></tr>`;
+  } else {
+    tbody.innerHTML = [...custos].sort((a, b) => b.data.localeCompare(a.data)).map(c => `
+      <tr>
+        <td>${c.data ? new Date(c.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+        <td>${h(c.categoria)}</td>
+        <td>${h(c.descricao || '—')}</td>
+        <td class="val-col">R$ ${fmtR(parseFloat(c.valor || 0))}</td>
+        <td style="text-align:right;">
+          <button class="btn btn-danger btn-sm" style="padding:.2rem .55rem;font-size:.7rem" onclick="excluirCusto(${c.id})">✕</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  const total = custos.reduce((s, c) => s + parseFloat(c.valor || 0), 0);
+  document.getElementById('custo-total-val').textContent = 'R$ ' + fmtR(total);
+}
+
+// ── Salvar Produção (horas planejadas) ──
+async function salvarProducao() {
+  const editId = document.getElementById('prod-edit-id').value;
+  const mes    = parseInt(document.getElementById('prod-mes').value);
+  const ano    = parseInt(document.getElementById('prod-ano').value);
+  const horas  = parseFloat(document.getElementById('prod-horas').value);
+  const obs    = document.getElementById('prod-obs').value.trim() || null;
+
+  if (!mes || !ano || isNaN(horas) || horas <= 0) {
+    showToast('Preencha mês, ano e horas planejadas.', true); return;
+  }
+
+  const payload = { mes, ano, horas_planejadas: horas, observacao: obs };
+
+  if (sb) {
+    if (editId) {
+      const { error } = await sb.from('producao').update(payload).eq('id', parseInt(editId));
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      const idx = STATE.producao.findIndex(p => p.id === parseInt(editId));
+      if (idx !== -1) STATE.producao[idx] = { ...STATE.producao[idx], ...payload };
+    } else {
+      const { data, error } = await sb.from('producao').insert([payload]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      STATE.producao.push(data);
+    }
+  } else {
+    // demo mode
+    if (editId) {
+      const idx = STATE.producao.findIndex(p => p.id === parseInt(editId));
+      if (idx !== -1) STATE.producao[idx] = { ...STATE.producao[idx], ...payload };
+    } else {
+      STATE.producao.push({ id: Date.now(), ...payload });
+    }
+  }
+
+  showToast('Horas planejadas salvas!');
+  closeModal('modal-producao');
+  renderIndicadores();
+}
+
+// ── Abrir modal custo (novo) ──
+function abrirModalCusto() {
+  document.getElementById('custo-edit-id').value = '';
+  document.getElementById('custo-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('custo-categoria').value = 'Corretiva';
+  document.getElementById('custo-descricao').value = '';
+  document.getElementById('custo-valor').value = '';
+  document.getElementById('custo-os-id').value = '';
+  document.getElementById('modal-custo-title').textContent = 'Lançar Custo';
+  openModal('modal-custo');
+}
+
+// ── Salvar Custo ──
+async function salvarCusto() {
+  const editId    = document.getElementById('custo-edit-id').value;
+  const data      = document.getElementById('custo-data').value;
+  const categoria = document.getElementById('custo-categoria').value;
+  const descricao = document.getElementById('custo-descricao').value.trim() || null;
+  const valorRaw  = document.getElementById('custo-valor').value;
+  const valor     = parseFloat(valorRaw);
+  const osIdRaw   = document.getElementById('custo-os-id').value;
+  const os_id     = osIdRaw !== '' ? parseInt(osIdRaw) : null;
+
+  if (!data || !categoria || isNaN(valor) || valor <= 0) {
+    showToast('Preencha data, categoria e valor.', true); return;
+  }
+
+  const payload = { data, categoria, descricao, valor, os_id };
+
+  if (sb) {
+    if (editId) {
+      const { error } = await sb.from('custos').update(payload).eq('id', parseInt(editId));
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      const idx = STATE.custos.findIndex(c => c.id === parseInt(editId));
+      if (idx !== -1) STATE.custos[idx] = { ...STATE.custos[idx], ...payload };
+    } else {
+      const { data: saved, error } = await sb.from('custos').insert([payload]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      STATE.custos.unshift(saved);
+    }
+  } else {
+    if (editId) {
+      const idx = STATE.custos.findIndex(c => c.id === parseInt(editId));
+      if (idx !== -1) STATE.custos[idx] = { ...STATE.custos[idx], ...payload };
+    } else {
+      STATE.custos.unshift({ id: Date.now(), ...payload });
+    }
+  }
+
+  showToast('Custo lançado!');
+  closeModal('modal-custo');
+  renderIndicadores();
+}
+
+// ── Excluir Custo ──
+async function excluirCusto(id) {
+  if (!confirm('Excluir este lançamento de custo?')) return;
+  if (sb) {
+    const { error } = await sb.from('custos').delete().eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+  STATE.custos = STATE.custos.filter(c => c.id !== id);
+  showToast('Custo excluído.');
+  renderIndicadores();
 }
 
 // ══════════════════════════════════════════
