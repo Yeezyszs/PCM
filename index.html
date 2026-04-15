@@ -1386,6 +1386,29 @@
         </div>
       </div>
 
+      <!-- Horas Planejadas cadastradas -->
+      <div class="ind-grid">
+        <div class="kpi-card kpi-wide">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Horas Planejadas por Mês</div>
+            <button class="btn btn-secondary btn-sm" onclick="abrirModalProducao()">+ Adicionar Mês</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="custo-table">
+              <thead>
+                <tr>
+                  <th>Mês / Ano</th>
+                  <th class="val-col">Horas Planejadas</th>
+                  <th>Observação</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="producao-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Paradas de Fábrica -->
       <div class="ind-grid">
         <div class="kpi-card kpi-wide">
@@ -4345,6 +4368,9 @@ function renderIndicadores() {
   renderChartDisp();
   renderChartMttr();
 
+  // ── Horas planejadas — tabela editável ──
+  renderProducao();
+
   // ── Paradas — tabela e sub-totais ──
   renderParadas(paradasPerio);
 
@@ -4657,6 +4683,57 @@ async function excluirParada(id) {
   }
   STATE.paradas = STATE.paradas.filter(p => p.id !== id);
   showToast('Parada excluída.');
+  renderIndicadores();
+}
+
+// ── Tabela de Horas Planejadas (Produção) ──
+const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function renderProducao() {
+  const tbody = document.getElementById('producao-tbody');
+  if (!tbody) return;
+  const sorted = [...STATE.producao].sort((a, b) =>
+    b.ano !== a.ano ? b.ano - a.ano : b.mes - a.mes
+  );
+  if (sorted.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.2rem">Nenhum mês cadastrado ainda.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = sorted.map(p => `
+    <tr>
+      <td>${MESES_NOME[(p.mes || 1) - 1]} / ${p.ano}</td>
+      <td class="val-col">${fmtH(parseFloat(p.horas_planejadas || 0))} h</td>
+      <td>${h(p.observacao || '—')}</td>
+      <td style="text-align:right;">
+        <button class="btn btn-secondary btn-sm" style="padding:.2rem .55rem;font-size:.7rem;margin-right:.25rem"
+          onclick="editarProducao(${p.id})">✎</button>
+        <button class="btn btn-danger btn-sm" style="padding:.2rem .55rem;font-size:.7rem"
+          onclick="excluirProducao(${p.id})">✕</button>
+      </td>
+    </tr>`).join('');
+}
+
+function editarProducao(id) {
+  const p = STATE.producao.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('prod-edit-id').value  = id;
+  document.getElementById('prod-mes').value      = p.mes;
+  document.getElementById('prod-ano').value      = p.ano;
+  document.getElementById('prod-horas').value    = p.horas_planejadas;
+  document.getElementById('prod-obs').value      = p.observacao || '';
+  document.getElementById('modal-prod-title').textContent = 'Editar Horas Planejadas';
+  openModal('modal-producao');
+}
+
+async function excluirProducao(id) {
+  if (!confirm('Excluir este registro de horas planejadas?')) return;
+  if (sb) {
+    const { error } = await sb.from('producao').delete().eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+  STATE.producao = STATE.producao.filter(p => p.id !== id);
+  showToast('Registro excluído.');
   renderIndicadores();
 }
 
