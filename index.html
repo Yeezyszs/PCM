@@ -817,6 +817,20 @@
   }
   .custo-total .val { font-size: 1.2rem; font-family: 'JetBrains Mono', monospace; color: var(--accent3); }
   @media (max-width: 600px) { .ind-grid { grid-template-columns: 1fr; } }
+
+  /* badges de tipo de parada */
+  .ptipo { display:inline-block; padding:.2rem .55rem; border-radius:999px; font-size:.7rem; font-weight:700; }
+  .ptipo-manut    { background:rgba(248,113,113,.15); color:#f87171; }
+  .ptipo-energia  { background:rgba(251,191,36,.15);  color:#fbbf24; }
+  .ptipo-materia  { background:rgba(167,139,250,.15); color:#a78bfa; }
+  .ptipo-outro    { background:rgba(148,163,184,.15); color:#94a3b8; }
+
+  /* btn-warning */
+  .btn-warning {
+    background:rgba(251,191,36,.15); color:#fbbf24;
+    border:1px solid rgba(251,191,36,.3);
+  }
+  .btn-warning:hover { background:rgba(251,191,36,.25); }
 </style>
 </head>
 <body>
@@ -1275,7 +1289,8 @@
           <div class="page-sub">Disponibilidade · MTTR / MTBF · Custos Operacionais</div>
         </div>
         <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-          <button class="btn btn-secondary btn-sm" onclick="openModal('modal-producao')">+ Horas Planejadas</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirModalProducao()">+ Horas Planejadas</button>
+          <button class="btn btn-warning btn-sm" onclick="abrirModalParada()">+ Registrar Parada</button>
           <button class="btn btn-primary btn-sm" onclick="abrirModalCusto()">+ Lançar Custo</button>
         </div>
       </div>
@@ -1367,6 +1382,52 @@
           </div>
           <div class="kpi-chart-wrap">
             <canvas id="chart-mttr"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paradas de Fábrica -->
+      <div class="ind-grid">
+        <div class="kpi-card kpi-wide">
+          <div class="kpi-card-hd">
+            <div class="kpi-card-title">Paradas de Fábrica no Período</div>
+            <div style="display:flex;gap:1.2rem;align-items:center;">
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Total horas</div>
+                <div class="kpi-sub-val" id="parada-total-h">—</div>
+              </div>
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Manutenção</div>
+                <div class="kpi-sub-val" id="parada-manut-h">—</div>
+              </div>
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Energia</div>
+                <div class="kpi-sub-val" id="parada-energia-h">—</div>
+              </div>
+              <div class="kpi-sub-item" style="text-align:right;">
+                <div class="kpi-sub-label">Mat. Prima</div>
+                <div class="kpi-sub-val" id="parada-materia-h">—</div>
+              </div>
+            </div>
+          </div>
+          <div style="overflow-x:auto;margin-top:.25rem;">
+            <table class="custo-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Motivo</th>
+                  <th>Equipamento</th>
+                  <th class="val-col">Horas</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="parada-tbody"></tbody>
+            </table>
+            <div class="custo-total">
+              <span>Total de horas paradas no período:</span>
+              <span class="val" id="parada-total-footer">0,0 h</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1837,6 +1898,62 @@
   </div>
 </div>
 
+<!-- ══ MODAL PARADA DE FÁBRICA ══ -->
+<div class="modal-overlay" id="modal-parada">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-parada-title">Registrar Parada de Fábrica</div>
+      <button class="modal-close" onclick="closeModal('modal-parada')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="parada-edit-id" value="">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="parada-data">
+        </div>
+        <div class="form-group">
+          <label>Tipo de Parada</label>
+          <select id="parada-tipo">
+            <option value="Manutenção / Quebra">Manutenção / Quebra de Equipamento</option>
+            <option value="Queda de Energia">Queda de Energia</option>
+            <option value="Falta de Matéria Prima">Falta de Matéria Prima</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Hora de Início</label>
+          <input type="time" id="parada-hora-ini" oninput="calcHorasParada()">
+        </div>
+        <div class="form-group">
+          <label>Hora de Retorno</label>
+          <input type="time" id="parada-hora-fim" oninput="calcHorasParada()">
+        </div>
+        <div class="form-group span2">
+          <label>Duração (horas) <span style="color:var(--muted);font-weight:400">— calculada automaticamente ou informe manualmente</span></label>
+          <input type="number" id="parada-horas" placeholder="Ex: 2.5" min="0.1" step="0.1">
+        </div>
+        <div class="form-group span2">
+          <label>Motivo / Descrição</label>
+          <textarea id="parada-motivo" placeholder="Descreva o motivo da parada…" rows="3" style="resize:vertical"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Equipamento (opcional)</label>
+          <input type="text" id="parada-equipamento" placeholder="Ex: Cevadeira">
+        </div>
+        <div class="form-group">
+          <label>O.S. Relacionada (opcional)</label>
+          <input type="number" id="parada-os-id" placeholder="Nº da O.S.">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-parada')">Cancelar</button>
+      <button class="btn btn-warning" onclick="salvarParada()">Registrar Parada</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL HORAS PLANEJADAS (PRODUÇÃO) ══ -->
 <div class="modal-overlay" id="modal-producao">
   <div class="modal" style="max-width:420px;">
@@ -1947,6 +2064,7 @@ let STATE = {
   setores: [], // setores extras além dos derivados de equipamentos
   producao: [], // horas planejadas por mês/ano
   custos: [],   // lançamentos de custos operacionais
+  paradas: [],  // paradas de fábrica com tipo/motivo
   checkState: {},
 };
 
@@ -2012,6 +2130,7 @@ async function loadAll() {
       { data: setores,   error: e12},
       { data: producao,  error: e13},
       { data: custos,    error: e14},
+      { data: paradas,   error: e15},
     ] = await Promise.all([
       sb.from('ordens').select('*').order('id', { ascending: false }),
       sb.from('equipamentos').select('*').order('setor'),
@@ -2027,9 +2146,10 @@ async function loadAll() {
       sb.from('setores').select('*').order('nome'),
       sb.from('producao').select('*').order('ano').order('mes'),
       sb.from('custos').select('*').order('data', { ascending: false }),
+      sb.from('paradas').select('*').order('data', { ascending: false }),
     ]);
 
-    // e12, e13, e14 são tolerados: tabelas podem não existir ainda
+    // e12–e15 são tolerados: tabelas podem não existir ainda
     const errs = [e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11].filter(Boolean);
     if (errs.length) throw new Error(errs.map(e => e.message).join('; '));
 
@@ -2065,6 +2185,7 @@ async function loadAll() {
     STATE.setores             = (setores || []).map(s => s.nome);
     STATE.producao            = producao || [];
     STATE.custos              = custos   || [];
+    STATE.paradas             = paradas  || [];
 
     setLoadingMsg('Pronto!');
     hideLoading();
@@ -4148,32 +4269,33 @@ function renderIndicadores() {
 
   const corte = indDataCorte();
 
-  // ── Ordens concluídas no período com horas_parada ──
-  const ordensPerio = STATE.ordens.filter(o => {
-    if (o.status !== 'Concluído') return false;
-    const d = new Date(o.dataConcl || o.data_concl || o.data);
-    return d >= corte;
-  });
+  // ── Paradas no período ──
+  const paradasPerio = STATE.paradas.filter(p => new Date(p.data + 'T00:00:00') >= corte);
 
-  // horas paradas total (somente ordens com horas_parada preenchido)
-  const horasParadas = ordensPerio.reduce((s, o) => s + (parseFloat(o.horas_parada) || 0), 0);
-  const nFalhas      = ordensPerio.filter(o => (parseFloat(o.horas_parada) || 0) > 0).length;
+  // Todas as paradas contam para Disponibilidade
+  const horasParadas = paradasPerio.reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
 
-  // horas planejadas no período
+  // Somente Manutenção / Quebra contam para MTTR / MTBF
+  const paradasManut = paradasPerio.filter(p => p.tipo === 'Manutenção / Quebra');
+  const horasManut   = paradasManut.reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+  const nFalhas      = paradasManut.length;
+
+  // ── Horas planejadas no período ──
   const prodPerio = STATE.producao.filter(p => {
     const d = new Date(p.ano, p.mes - 1, 1);
     return d >= corte;
   });
   const horasPlan = prodPerio.reduce((s, p) => s + parseFloat(p.horas_planejadas || 0), 0);
 
-  // Métricas
-  const horasOper  = Math.max(0, horasPlan - horasParadas);
-  const dispPct    = horasPlan > 0 ? (horasOper / horasPlan) * 100 : null;
-  const mttr       = nFalhas > 0 ? horasParadas / nFalhas : null;
-  const mtbf       = nFalhas > 0 ? horasOper / nFalhas : null;
+  // ── Métricas ──
+  const horasOper = Math.max(0, horasPlan - horasParadas);
+  const dispPct   = horasPlan > 0 ? (horasOper / horasPlan) * 100 : null;
+  const mttr      = nFalhas > 0 ? horasManut / nFalhas : null;
+  const mtbf      = nFalhas > 0 ? horasOper / nFalhas : null;
+
+  const dEl = v => document.getElementById(v);
 
   // ── Disponibilidade ──
-  const dEl = v => document.getElementById(v);
   if (dispPct !== null) {
     const [cls, lbl] = dispBadge(dispPct);
     dEl('disp-value').innerHTML = `${dispPct.toFixed(1)}<span>%</span>`;
@@ -4188,7 +4310,7 @@ function renderIndicadores() {
     dEl('disp-gauge').style.width = '0%';
   }
   dEl('disp-hplan').textContent = horasPlan > 0 ? fmtH(horasPlan) + 'h' : '—';
-  dEl('disp-hpara').textContent = horasParadas > 0 ? fmtH(horasParadas) + 'h' : '0h';
+  dEl('disp-hpara').textContent = fmtH(horasParadas) + 'h';
   dEl('disp-hoper').textContent = horasOper > 0 ? fmtH(horasOper) + 'h' : '—';
 
   // ── MTTR ──
@@ -4202,7 +4324,7 @@ function renderIndicadores() {
     dEl('mttr-badge').textContent = 'Sem dados';
     dEl('mttr-badge').className = 'kpi-badge warn';
   }
-  dEl('mttr-total').textContent  = fmtH(horasParadas) + 'h';
+  dEl('mttr-total').textContent  = fmtH(horasManut) + 'h';
   dEl('mttr-falhas').textContent = nFalhas;
 
   // ── MTBF ──
@@ -4223,8 +4345,11 @@ function renderIndicadores() {
   renderChartDisp();
   renderChartMttr();
 
+  // ── Paradas — tabela e sub-totais ──
+  renderParadas(paradasPerio);
+
   // ── Custos ──
-  const custosPerio = STATE.custos.filter(c => new Date(c.data) >= corte);
+  const custosPerio = STATE.custos.filter(c => new Date(c.data + 'T00:00:00') >= corte);
   renderCustos(custosPerio);
 }
 
@@ -4245,13 +4370,10 @@ function renderChartDisp() {
     if (hPlan === 0) return null;
     const ini = new Date(m.ano, m.mes - 1, 1);
     const fim = new Date(m.ano, m.mes, 1);
-    const hPara = STATE.ordens
-      .filter(o => {
-        if (o.status !== 'Concluído') return false;
-        const d = new Date(o.dataConcl || o.data_concl || o.data);
-        return d >= ini && d < fim && (parseFloat(o.horas_parada) || 0) > 0;
-      })
-      .reduce((s, o) => s + (parseFloat(o.horas_parada) || 0), 0);
+    // Usa STATE.paradas como fonte primária (todos os tipos contam para disponibilidade)
+    const hPara = STATE.paradas
+      .filter(p => { const d = new Date(p.data + 'T00:00:00'); return d >= ini && d < fim; })
+      .reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
     return Math.min(100, ((hPlan - hPara) / hPlan) * 100);
   });
 
@@ -4296,19 +4418,26 @@ function renderChartMttr() {
 
   const mttrVals = [], mtbfVals = [];
   meses.forEach(m => {
-    const prod = STATE.producao.find(p => p.ano === m.ano && p.mes === m.mes);
+    const prod  = STATE.producao.find(p => p.ano === m.ano && p.mes === m.mes);
     const hPlan = prod ? (parseFloat(prod.horas_planejadas) || 0) : 0;
     const ini = new Date(m.ano, m.mes - 1, 1);
     const fim = new Date(m.ano, m.mes, 1);
-    const ordsM = STATE.ordens.filter(o => {
-      if (o.status !== 'Concluído') return false;
-      const d = new Date(o.dataConcl || o.data_concl || o.data);
-      return d >= ini && d < fim && (parseFloat(o.horas_parada) || 0) > 0;
+    // Somente paradas de Manutenção/Quebra alimentam MTTR/MTBF
+    const paradasM = STATE.paradas.filter(p => {
+      const d = new Date(p.data + 'T00:00:00');
+      return d >= ini && d < fim && p.tipo === 'Manutenção / Quebra';
     });
-    const hPara = ordsM.reduce((s, o) => s + (parseFloat(o.horas_parada) || 0), 0);
-    const nF    = ordsM.length;
-    mttrVals.push(nF > 0 ? hPara / nF : null);
-    mtbfVals.push(nF > 0 && hPlan > 0 ? (hPlan - hPara) / nF : null);
+    // Todas as paradas contam para horas operando (base do MTBF)
+    const todasParadasM = STATE.paradas.filter(p => {
+      const d = new Date(p.data + 'T00:00:00');
+      return d >= ini && d < fim;
+    });
+    const hManut   = paradasM.reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+    const hTodasP  = todasParadasM.reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+    const hOper    = Math.max(0, hPlan - hTodasP);
+    const nF       = paradasM.length;
+    mttrVals.push(nF > 0 ? hManut / nF : null);
+    mtbfVals.push(nF > 0 && hOper > 0 ? hOper / nF : null);
   });
 
   const ctx = document.getElementById('chart-mttr');
@@ -4387,6 +4516,160 @@ function renderCustos(custos) {
 
   const total = custos.reduce((s, c) => s + parseFloat(c.valor || 0), 0);
   document.getElementById('custo-total-val').textContent = 'R$ ' + fmtR(total);
+}
+
+// ── Tabela de Paradas ──
+function paradaTipoCls(tipo) {
+  if (tipo === 'Manutenção / Quebra')    return 'ptipo ptipo-manut';
+  if (tipo === 'Queda de Energia')       return 'ptipo ptipo-energia';
+  if (tipo === 'Falta de Matéria Prima') return 'ptipo ptipo-materia';
+  return 'ptipo ptipo-outro';
+}
+
+function renderParadas(paradas) {
+  const dEl = v => document.getElementById(v);
+  const hTotal   = paradas.reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+  const hManut   = paradas.filter(p => p.tipo === 'Manutenção / Quebra')   .reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+  const hEnergia = paradas.filter(p => p.tipo === 'Queda de Energia')      .reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+  const hMateria = paradas.filter(p => p.tipo === 'Falta de Matéria Prima').reduce((s, p) => s + (parseFloat(p.horas) || 0), 0);
+
+  dEl('parada-total-h').textContent   = fmtH(hTotal) + 'h';
+  dEl('parada-manut-h').textContent   = fmtH(hManut) + 'h';
+  dEl('parada-energia-h').textContent = fmtH(hEnergia) + 'h';
+  dEl('parada-materia-h').textContent = fmtH(hMateria) + 'h';
+  dEl('parada-total-footer').textContent = fmtH(hTotal) + ' h';
+
+  const tbody = dEl('parada-tbody');
+  if (!tbody) return;
+  if (paradas.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:1.2rem">Nenhuma parada registrada no período.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = [...paradas].sort((a, b) => b.data.localeCompare(a.data)).map(p => `
+    <tr>
+      <td>${p.data ? new Date(p.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td><span class="${paradaTipoCls(p.tipo)}">${h(p.tipo)}</span></td>
+      <td>${h(p.motivo || '—')}</td>
+      <td>${h(p.equipamento || '—')}</td>
+      <td class="val-col">${fmtH(parseFloat(p.horas) || 0)} h</td>
+      <td style="text-align:right;">
+        <button class="btn btn-secondary btn-sm" style="padding:.2rem .55rem;font-size:.7rem;margin-right:.2rem" onclick="editarParada(${p.id})">✎</button>
+        <button class="btn btn-danger btn-sm" style="padding:.2rem .55rem;font-size:.7rem" onclick="excluirParada(${p.id})">✕</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ── Abrir modal Parada (novo) ──
+function abrirModalParada() {
+  document.getElementById('parada-edit-id').value   = '';
+  document.getElementById('parada-data').value      = new Date().toISOString().split('T')[0];
+  document.getElementById('parada-tipo').value      = 'Manutenção / Quebra';
+  document.getElementById('parada-hora-ini').value  = '';
+  document.getElementById('parada-hora-fim').value  = '';
+  document.getElementById('parada-horas').value     = '';
+  document.getElementById('parada-motivo').value    = '';
+  document.getElementById('parada-equipamento').value = '';
+  document.getElementById('parada-os-id').value     = '';
+  document.getElementById('modal-parada-title').textContent = 'Registrar Parada de Fábrica';
+  openModal('modal-parada');
+}
+
+// ── Editar Parada existente ──
+function editarParada(id) {
+  const p = STATE.paradas.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('parada-edit-id').value   = id;
+  document.getElementById('parada-data').value      = p.data || '';
+  document.getElementById('parada-tipo').value      = p.tipo || 'Manutenção / Quebra';
+  document.getElementById('parada-hora-ini').value  = p.hora_inicio || '';
+  document.getElementById('parada-hora-fim').value  = p.hora_fim    || '';
+  document.getElementById('parada-horas').value     = p.horas != null ? p.horas : '';
+  document.getElementById('parada-motivo').value    = p.motivo       || '';
+  document.getElementById('parada-equipamento').value = p.equipamento || '';
+  document.getElementById('parada-os-id').value     = p.os_id != null ? p.os_id : '';
+  document.getElementById('modal-parada-title').textContent = 'Editar Parada';
+  openModal('modal-parada');
+}
+
+// ── Calcular horas automaticamente ao preencher hora início/fim ──
+function calcHorasParada() {
+  const ini = document.getElementById('parada-hora-ini').value;
+  const fim = document.getElementById('parada-hora-fim').value;
+  if (!ini || !fim) return;
+  const [hI, mI] = ini.split(':').map(Number);
+  const [hF, mF] = fim.split(':').map(Number);
+  let diff = (hF * 60 + mF) - (hI * 60 + mI);
+  if (diff < 0) diff += 24 * 60; // passa da meia-noite
+  if (diff > 0) document.getElementById('parada-horas').value = (diff / 60).toFixed(1);
+}
+
+// ── Salvar Parada ──
+async function salvarParada() {
+  const editId     = document.getElementById('parada-edit-id').value;
+  const data       = document.getElementById('parada-data').value;
+  const tipo       = document.getElementById('parada-tipo').value;
+  const hora_inicio= document.getElementById('parada-hora-ini').value || null;
+  const hora_fim   = document.getElementById('parada-hora-fim').value || null;
+  const horasRaw   = document.getElementById('parada-horas').value;
+  const horas      = parseFloat(horasRaw);
+  const motivo     = document.getElementById('parada-motivo').value.trim() || null;
+  const equipamento= document.getElementById('parada-equipamento').value.trim() || null;
+  const osIdRaw    = document.getElementById('parada-os-id').value;
+  const os_id      = osIdRaw !== '' ? parseInt(osIdRaw) : null;
+
+  if (!data || !tipo || isNaN(horas) || horas <= 0) {
+    showToast('Preencha data, tipo e duração da parada.', true); return;
+  }
+
+  const payload = { data, tipo, hora_inicio, hora_fim, horas, motivo, equipamento, os_id };
+
+  if (sb) {
+    if (editId) {
+      const { error } = await sb.from('paradas').update(payload).eq('id', parseInt(editId));
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      const idx = STATE.paradas.findIndex(p => p.id === parseInt(editId));
+      if (idx !== -1) STATE.paradas[idx] = { ...STATE.paradas[idx], ...payload };
+    } else {
+      const { data: saved, error } = await sb.from('paradas').insert([payload]).select().single();
+      if (error) { showToast('Erro: ' + error.message, true); return; }
+      STATE.paradas.unshift(saved);
+    }
+  } else {
+    if (editId) {
+      const idx = STATE.paradas.findIndex(p => p.id === parseInt(editId));
+      if (idx !== -1) STATE.paradas[idx] = { ...STATE.paradas[idx], ...payload };
+    } else {
+      STATE.paradas.unshift({ id: Date.now(), ...payload });
+    }
+  }
+
+  showToast(editId ? 'Parada atualizada!' : 'Parada registrada!');
+  closeModal('modal-parada');
+  renderIndicadores();
+}
+
+// ── Excluir Parada ──
+async function excluirParada(id) {
+  if (!confirm('Excluir este registro de parada?')) return;
+  if (sb) {
+    const { error } = await sb.from('paradas').delete().eq('id', id);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+  }
+  STATE.paradas = STATE.paradas.filter(p => p.id !== id);
+  showToast('Parada excluída.');
+  renderIndicadores();
+}
+
+// ── Abrir modal Produção (horas planejadas) com data dinâmica ──
+function abrirModalProducao() {
+  const now = new Date();
+  document.getElementById('prod-edit-id').value  = '';
+  document.getElementById('prod-mes').value      = now.getMonth() + 1;
+  document.getElementById('prod-ano').value      = now.getFullYear();
+  document.getElementById('prod-horas').value    = '';
+  document.getElementById('prod-obs').value      = '';
+  document.getElementById('modal-prod-title').textContent = 'Horas Planejadas';
+  openModal('modal-producao');
 }
 
 // ── Salvar Produção (horas planejadas) ──
