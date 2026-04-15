@@ -2208,7 +2208,8 @@ async function loadAll() {
     STATE.setores             = (setores || []).map(s => s.nome);
     STATE.producao            = producao || [];
     STATE.custos              = custos   || [];
-    STATE.paradas             = paradas  || [];
+    // Normalizar horas → float para garantir cálculo correto dos KPIs
+    STATE.paradas             = (paradas || []).map(p => ({ ...p, horas: parseFloat(p.horas) || 0 }));
 
     setLoadingMsg('Pronto!');
     hideLoading();
@@ -4654,11 +4655,13 @@ async function salvarParada() {
       const { error } = await sb.from('paradas').update(payload).eq('id', parseInt(editId));
       if (error) { showToast('Erro: ' + error.message, true); return; }
       const idx = STATE.paradas.findIndex(p => p.id === parseInt(editId));
-      if (idx !== -1) STATE.paradas[idx] = { ...STATE.paradas[idx], ...payload };
+      if (idx !== -1) STATE.paradas[idx] = { ...STATE.paradas[idx], ...payload, horas: parseFloat(payload.horas) || 0 };
     } else {
       const { data: saved, error } = await sb.from('paradas').insert([payload]).select().single();
       if (error) { showToast('Erro: ' + error.message, true); return; }
-      STATE.paradas.unshift(saved);
+      // saved pode vir null se RLS bloquear o select — usar payload como fallback
+      const row = saved ?? payload;
+      STATE.paradas.unshift({ ...row, horas: parseFloat(row.horas) || 0 });
     }
   } else {
     if (editId) {
@@ -4770,9 +4773,15 @@ async function salvarProducao() {
       const idx = STATE.producao.findIndex(p => p.id === parseInt(editId));
       if (idx !== -1) STATE.producao[idx] = { ...STATE.producao[idx], ...payload };
     } else {
-      const { data, error } = await sb.from('producao').insert([payload]).select().single();
+      // upsert: se mes/ano já existe, atualiza; caso contrário, insere
+      const { data: saved, error } = await sb.from('producao')
+        .upsert([payload], { onConflict: 'mes,ano' })
+        .select().single();
       if (error) { showToast('Erro: ' + error.message, true); return; }
-      STATE.producao.push(data);
+      const row = saved ?? { id: Date.now(), ...payload };
+      const existing = STATE.producao.findIndex(p => p.mes === mes && p.ano === ano);
+      if (existing !== -1) STATE.producao[existing] = { ...STATE.producao[existing], ...row };
+      else STATE.producao.push(row);
     }
   } else {
     // demo mode
@@ -4780,7 +4789,9 @@ async function salvarProducao() {
       const idx = STATE.producao.findIndex(p => p.id === parseInt(editId));
       if (idx !== -1) STATE.producao[idx] = { ...STATE.producao[idx], ...payload };
     } else {
-      STATE.producao.push({ id: Date.now(), ...payload });
+      const existing = STATE.producao.findIndex(p => p.mes === mes && p.ano === ano);
+      if (existing !== -1) STATE.producao[existing] = { ...STATE.producao[existing], ...payload };
+      else STATE.producao.push({ id: Date.now(), ...payload });
     }
   }
 
