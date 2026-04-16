@@ -2287,9 +2287,16 @@ async function loadAll() {
   }
 }
 
-// ══════════════════════════════════════════
-// DATA — mantido como fallback / seed local
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// DEMO_DATA — DADOS DE DEMONSTRAÇÃO / FALLBACK
+//
+// Esta constante contém dados estáticos usados APENAS como fallback
+// quando o Supabase não está configurado (URL/KEY não definidos).
+// Em operação normal, nenhuma função de renderização lê DEMO_DATA —
+// toda a aplicação consulta exclusivamente o objeto STATE, que é
+// populado pelo Supabase em loadAll(). Qualquer alteração aqui não
+// afeta os dados reais da aplicação.
+// ══════════════════════════════════════════════════════════════════════
 
 const DEMO_DATA = {
 
@@ -3088,12 +3095,12 @@ function renderDashboard() {
     </div>
     <div class="stat-card yellow">
       <div class="stat-label">Equipamentos</div>
-      <div class="stat-value" style="color:var(--accent)">${DB.equipamentos.length}</div>
+      <div class="stat-value" style="color:var(--accent)">${STATE.equipamentos.length}</div>
       <div class="stat-sub">cadastrados</div>
     </div>
     <div class="stat-card blue">
       <div class="stat-label">Planos Ativos</div>
-      <div class="stat-value" style="color:var(--accent2)">${DB.planos.length}</div>
+      <div class="stat-value" style="color:var(--accent2)">${STATE.planos.length}</div>
       <div class="stat-sub">itens de manutenção</div>
     </div>
   `;
@@ -4009,7 +4016,7 @@ function renderCaixasFerramentas() {
   if (!container) return;
 
   const caixas = {};
-  DB.caixasFerramentas.forEach(f => {
+  STATE.caixasFerramentas.forEach(f => {
     if (!caixas[f.caixa]) caixas[f.caixa] = [];
     caixas[f.caixa].push(f);
   });
@@ -4071,7 +4078,7 @@ function renderLubrificacao() {
 
   // Preencher opções de setor
   const setorEl = document.getElementById('lu-setor-filter');
-  const setores = [...new Set(DB.lubrificacao.map(l => l.setor))];
+  const setores = [...new Set(STATE.lubrificacao.map(l => l.setor))];
   if (setorEl.options.length <= 1) {
     setores.forEach(s => {
       const opt = document.createElement('option');
