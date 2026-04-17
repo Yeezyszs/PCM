@@ -831,6 +831,68 @@
     border:1px solid rgba(251,191,36,.3);
   }
   .btn-warning:hover { background:rgba(251,191,36,.25); }
+
+  /* ── IMPRESSÃO DE O.S. ── */
+  #print-os-section { display:none; }
+  @media print {
+    body > *:not(#print-os-section) { display:none !important; }
+    #print-os-section {
+      display:block !important;
+      font-family:Arial,sans-serif;
+      font-size:9pt;
+      color:#000;
+      background:#fff;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    @page { size:A4 portrait; margin:12mm; }
+    #print-os-section *  { box-sizing:border-box; }
+    #pos-nos-wrap        { width:100%; border:2px solid #000; }
+    #pos-nos-wrap .hd    { display:flex; align-items:stretch; border-bottom:2px solid #000; }
+    #pos-nos-wrap .hd-logo { width:80px; min-width:80px; display:flex; align-items:center; justify-content:center; border-right:1px solid #000; padding:6px; }
+    #pos-nos-wrap .hd-logo img { max-width:68px; max-height:52px; object-fit:contain; }
+    #pos-nos-wrap .hd-logo-txt { font-size:8pt; font-weight:700; text-align:center; line-height:1.2; }
+    #pos-nos-wrap .hd-title { flex:1; display:flex; flex-direction:column; justify-content:center; padding:4px 10px; }
+    #pos-nos-wrap .hd-title h1 { font-size:13pt; font-weight:700; text-align:center; }
+    #pos-nos-wrap .hd-meta { width:130px; min-width:130px; border-left:1px solid #000; display:flex; flex-direction:column; font-size:8pt; }
+    #pos-nos-wrap .hd-meta-row { padding:3px 6px; border-bottom:1px solid #ccc; }
+    #pos-nos-wrap .hd-meta-row:last-child { border-bottom:none; }
+    #pos-nos-wrap .hd-meta-row span { font-weight:700; }
+    #pos-nos-wrap .field-row { display:flex; border-bottom:1px solid #000; }
+    #pos-nos-wrap .field-lbl { font-weight:700; font-size:7.5pt; white-space:nowrap; padding:3px 6px; border-right:1px solid #ccc; min-width:130px; }
+    #pos-nos-wrap .field-val { flex:1; padding:3px 6px; min-height:20px; }
+    #pos-nos-wrap .body-cols { display:flex; border-bottom:1px solid #000; }
+    #pos-nos-wrap .col-left  { flex:1; border-right:1px solid #000; }
+    #pos-nos-wrap .col-right { width:185px; min-width:185px; }
+    #pos-nos-wrap .col-left .field-row { border-bottom:1px solid #ccc; }
+    #pos-nos-wrap .col-left .field-row:last-child { border-bottom:none; }
+    #pos-nos-wrap .col-right .block { padding:3px 6px; border-bottom:1px solid #ccc; font-size:8pt; }
+    #pos-nos-wrap .col-right .block:last-child { border-bottom:none; }
+    #pos-nos-wrap .col-right .block-lbl { font-weight:700; font-size:7pt; text-transform:uppercase; margin-bottom:2px; }
+    #pos-nos-wrap .col-right .chk-row { display:flex; gap:8px; flex-wrap:wrap; }
+    #pos-nos-wrap .col-right .chk-item { display:flex; align-items:center; gap:2px; }
+    #pos-nos-wrap .desc-block { border-bottom:1px solid #000; }
+    #pos-nos-wrap .desc-block .field-lbl { border-right:none; min-width:unset; padding:3px 6px 0; }
+    #pos-nos-wrap .desc-block .desc-area { padding:2px 6px 6px; min-height:38px; }
+    #pos-nos-wrap .section-title { background:#ddd; font-weight:700; font-size:8pt; padding:3px 6px; border-bottom:1px solid #000; }
+    #pos-nos-wrap .insp-table { width:100%; border-collapse:collapse; font-size:8pt; }
+    #pos-nos-wrap .insp-table th { background:#eee; border:1px solid #ccc; padding:3px 5px; font-size:7.5pt; text-align:center; }
+    #pos-nos-wrap .insp-table td { border:1px solid #ccc; padding:3px 5px; height:18px; }
+    #pos-nos-wrap .insp-table td:first-child { min-width:80px; }
+    #pos-nos-wrap .two-cols   { display:flex; border-bottom:1px solid #000; }
+    #pos-nos-wrap .seg-block  { flex:1; border-right:1px solid #000; }
+    #pos-nos-wrap .limp-block { flex:1; }
+    #pos-nos-wrap .seg-block .section-title, #pos-nos-wrap .limp-block .section-title { border-bottom:1px solid #ccc; }
+    #pos-nos-wrap .chk-line   { display:flex; align-items:flex-start; gap:4px; padding:2px 6px; border-bottom:1px solid #eee; font-size:8pt; line-height:1.3; }
+    #pos-nos-wrap .chk-line .opts { white-space:nowrap; }
+    #pos-nos-wrap .liberacao  { padding:3px 6px; font-size:8pt; display:flex; align-items:center; gap:8px; }
+    #pos-nos-wrap .sig-row    { display:flex; border-bottom:1px solid #000; }
+    #pos-nos-wrap .sig-box    { flex:1; padding:4px 6px; border-right:1px solid #ccc; }
+    #pos-nos-wrap .sig-box:last-child { border-right:none; }
+    #pos-nos-wrap .sig-lbl    { font-size:7.5pt; font-weight:700; margin-bottom:18px; }
+    #pos-nos-wrap .sig-line   { border-top:1px solid #000; font-size:7pt; text-align:center; padding-top:2px; color:#555; }
+    #pos-nos-wrap .footer-note { padding:3px 6px; font-size:7.5pt; font-style:italic; }
+  }
 </style>
 </head>
 <body>
@@ -2130,6 +2192,79 @@
   </div>
 </div>
 
+<!-- ══ TEMPLATE IMPRESSÃO O.S. (oculto na tela, visível só no print) ══ -->
+<div id="print-os-section">
+  <div id="pos-nos-wrap">
+    <div class="hd">
+      <div class="hd-logo">
+        <img src="./logo.png" alt="Logo" id="pos-logo">
+        <div class="hd-logo-txt" id="pos-logo-txt" style="display:none">BEPI<br>Mataruco</div>
+      </div>
+      <div class="hd-title"><h1>Ordem de Serviço de Manutenção</h1></div>
+      <div class="hd-meta">
+        <div class="hd-meta-row"><span>Setor:</span> <span id="pos-setor"></span></div>
+        <div class="hd-meta-row"><span>Número:</span> <span id="pos-numero"></span></div>
+        <div class="hd-meta-row"><span>Rev.:</span> 01 &nbsp;&nbsp; <span>FOR:</span> POP-5.1.1</div>
+      </div>
+    </div>
+    <div class="field-row"><div class="field-lbl">Nome do Equipamento</div><div class="field-val"></div></div>
+    <div class="field-row"><div class="field-lbl">Nome Solicitante</div><div class="field-val" id="pos-req"></div></div>
+    <div class="body-cols">
+      <div class="col-left">
+        <div class="field-row" style="flex-direction:column;min-height:60px">
+          <div class="field-lbl" style="border-right:none">Serviço Solicitado</div>
+          <div class="field-val" style="padding:3px 6px 8px" id="pos-descricao"></div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="block"><div class="block-lbl">Data / Hora</div><div id="pos-datahora"></div></div>
+        <div class="block"><div class="block-lbl">Parou equipamento?</div><div class="chk-row"><span class="chk-item">&#9744; Sim</span><span class="chk-item">&#9744; Não</span></div></div>
+        <div class="block"><div class="block-lbl">Tipo</div><div class="chk-row" id="pos-tipo"></div></div>
+        <div class="block"><div class="block-lbl">Equipe</div><div class="chk-row" id="pos-equipe"></div></div>
+        <div class="block"><div class="block-lbl">Prioridade</div><div class="chk-row" id="pos-prioridade"></div></div>
+      </div>
+    </div>
+    <div class="desc-block" style="border-bottom:1px solid #000">
+      <div class="field-lbl">Serviço Realizado</div>
+      <div class="desc-area" id="pos-realizado"></div>
+    </div>
+    <div class="section-title">Checklist de Inspeção dos Serviços</div>
+    <div style="padding:4px 6px;border-bottom:1px solid #000">
+      <table class="insp-table"><thead><tr>
+        <th>Nome</th><th>Data Início</th><th>Hora Início</th><th>Data Fim</th><th>Hora Fim</th>
+      </tr></thead><tbody>
+        <tr><td id="pos-exec"></td><td id="pos-dataprog"></td><td></td><td id="pos-dataconcl"></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td></tr>
+      </tbody></table>
+    </div>
+    <div class="two-cols">
+      <div class="seg-block">
+        <div class="section-title">Segurança do Trabalho</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Proteções foram colocadas?</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Dispositivos de segurança estão funcionando?</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Fechos foram fechados?</div>
+        <div class="liberacao" style="border-top:1px solid #ccc;margin-top:2px"><span style="font-size:7pt;color:#555">NA = Não Aplicável</span>&nbsp;&nbsp;<strong>Liberação do Serviço</strong></div>
+      </div>
+      <div class="limp-block">
+        <div class="section-title">Limpeza e Segurança Alimentar</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Limpeza a ferramenta ou utensilios utilizados?</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Foram retiradas peças e/ou restos não utilizados?</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Retirada embalagens e outros resíduos (pano, galão)?</div>
+        <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Resíduos de materiais retirados (metal, fios, cabo)?</div>
+        <div style="padding:3px 6px;display:flex;gap:20px;font-size:8pt;border-top:1px solid #ccc">
+          <span><strong>Cartão:</strong></span><span>Nome: ___________________</span><span>Visto: ________</span>
+        </div>
+      </div>
+    </div>
+    <div class="sig-row">
+      <div class="sig-box"><div class="sig-lbl">Responsável pela Execução do Serviço</div><div class="sig-line">Assinatura / Data</div></div>
+      <div class="sig-box"><div class="sig-lbl">Responsável pelo Setor Solicitante</div><div class="sig-line">Assinatura / Data</div></div>
+    </div>
+    <div class="footer-note">Qualquer informação adicional, utilizar o verso.</div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════
 // CONFIGURAÇÃO SUPABASE
@@ -3285,159 +3420,48 @@ function imprimirOS(id) {
   if (!o) return;
 
   const fmtD = s => s ? s.split('-').reverse().join('/') : '___/___/______';
-  const chk  = (val, opt) => val === opt ? '&#9745;' : '&#9744;';
+  const chkHtml = (val, opt, label) =>
+    (val === opt ? '\u2611' : '\u2610') + ' ' + label;
 
-  const tipoCorr = chk(o.tipo, 'Corretiva');
-  const tipoMelh = chk(o.tipo, 'melhoria');
-  const tipoPrev = chk(o.tipo, 'Preventiva');
-  const natPred  = chk(o.natureza, 'Predial');
-  const natMec   = chk(o.natureza, 'Mecânica');
-  const natElet  = chk(o.natureza, 'Oficina');
-  const prioUrg  = chk(o.prioridade, 'Alta');
-  const prioMen  = chk(o.prioridade, 'Média');
-  const prioProg = chk(o.prioridade, 'Baixa');
+  const set = (elId, txt) => {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = txt;
+  };
 
-  const css = [
-    '@page{size:A4 portrait;margin:12mm}',
-    '*{box-sizing:border-box;margin:0;padding:0}',
-    'body{font-family:Arial,sans-serif;font-size:9pt;color:#000;background:#fff}',
-    '.os-wrap{width:100%;border:2px solid #000}',
-    '.hd{display:flex;align-items:stretch;border-bottom:2px solid #000}',
-    '.hd-logo{width:80px;min-width:80px;display:flex;align-items:center;justify-content:center;border-right:1px solid #000;padding:6px}',
-    '.hd-logo img{max-width:68px;max-height:52px;object-fit:contain}',
-    '.hd-logo-txt{font-size:8pt;font-weight:700;text-align:center;line-height:1.2}',
-    '.hd-title{flex:1;display:flex;flex-direction:column;justify-content:center;padding:4px 10px}',
-    '.hd-title h1{font-size:13pt;font-weight:700;text-align:center}',
-    '.hd-meta{width:130px;min-width:130px;border-left:1px solid #000;display:flex;flex-direction:column;font-size:8pt}',
-    '.hd-meta-row{padding:3px 6px;border-bottom:1px solid #ccc}',
-    '.hd-meta-row:last-child{border-bottom:none}',
-    '.hd-meta-row span{font-weight:700}',
-    '.field-row{display:flex;border-bottom:1px solid #000}',
-    '.field-lbl{font-weight:700;font-size:7.5pt;white-space:nowrap;padding:3px 6px;border-right:1px solid #ccc;min-width:130px}',
-    '.field-val{flex:1;padding:3px 6px;min-height:20px}',
-    '.body-cols{display:flex;border-bottom:1px solid #000}',
-    '.col-left{flex:1;border-right:1px solid #000}',
-    '.col-right{width:185px;min-width:185px}',
-    '.col-left .field-row{border-bottom:1px solid #ccc}',
-    '.col-left .field-row:last-child{border-bottom:none}',
-    '.col-right .block{padding:3px 6px;border-bottom:1px solid #ccc;font-size:8pt}',
-    '.col-right .block:last-child{border-bottom:none}',
-    '.col-right .block-lbl{font-weight:700;font-size:7pt;text-transform:uppercase;margin-bottom:2px}',
-    '.col-right .chk-row{display:flex;gap:8px;flex-wrap:wrap}',
-    '.col-right .chk-item{display:flex;align-items:center;gap:2px}',
-    '.desc-block{border-bottom:1px solid #000}',
-    '.desc-block .field-lbl{border-right:none;min-width:unset;padding:3px 6px 0}',
-    '.desc-block .desc-area{padding:2px 6px 6px;min-height:38px}',
-    '.section-title{background:#ddd;font-weight:700;font-size:8pt;padding:3px 6px;border-bottom:1px solid #000}',
-    '.insp-table{width:100%;border-collapse:collapse;font-size:8pt}',
-    '.insp-table th{background:#eee;border:1px solid #ccc;padding:3px 5px;font-size:7.5pt;text-align:center}',
-    '.insp-table td{border:1px solid #ccc;padding:3px 5px;height:18px}',
-    '.insp-table td:first-child{min-width:80px}',
-    '.two-cols{display:flex;border-bottom:1px solid #000}',
-    '.seg-block{flex:1;border-right:1px solid #000}',
-    '.limp-block{flex:1}',
-    '.seg-block .section-title,.limp-block .section-title{border-bottom:1px solid #ccc}',
-    '.chk-line{display:flex;align-items:flex-start;gap:4px;padding:2px 6px;border-bottom:1px solid #eee;font-size:8pt;line-height:1.3}',
-    '.chk-line .opts{white-space:nowrap}',
-    '.liberacao{padding:3px 6px;font-size:8pt;display:flex;align-items:center;gap:8px}',
-    '.sig-row{display:flex;border-bottom:1px solid #000}',
-    '.sig-box{flex:1;padding:4px 6px;border-right:1px solid #ccc}',
-    '.sig-box:last-child{border-right:none}',
-    '.sig-lbl{font-size:7.5pt;font-weight:700;margin-bottom:18px}',
-    '.sig-line{border-top:1px solid #000;font-size:7pt;text-align:center;padding-top:2px;color:#555}',
-    '.footer-note{padding:3px 6px;font-size:7.5pt;font-style:italic}',
-    '.no-print{padding:10px;background:#f0f0f0;margin-bottom:10px;display:flex;gap:10px;align-items:center}',
-    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none!important}}',
-  ].join('\n');
+  set('pos-setor',   o.setor ? o.setor.trim() : '—');
+  set('pos-numero',  '#' + String(o.id).padStart(4, '0'));
+  set('pos-req',     o.req || '');
+  set('pos-descricao', o.desc || '');
+  set('pos-datahora',  fmtD(o.data) + '   ' + (o.hora || '—'));
+  set('pos-realizado', o.realizado || '');
+  set('pos-exec',      o.exec || '');
+  set('pos-dataprog',  fmtD(o.dataProg));
+  set('pos-dataconcl', fmtD(o.dataConcl));
 
-  const html = [
-    '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">',
-    '<title>O.S. #' + o.id + '</title>',
-    '<style>' + css + '</style>',
-    '</head><body>',
-    '<div class="no-print">',
-    '<button onclick="window.print()" style="padding:6px 18px;font-size:10pt;cursor:pointer;background:#074798;color:#fff;border:none;border-radius:4px">Imprimir</button>',
-    '<button onclick="window.close()" style="padding:6px 14px;font-size:10pt;cursor:pointer">Fechar</button>',
-    '<span style="font-size:9pt;color:#555">Use Ctrl+P ou o botao acima. Recomendado: papel A4, margens minimas.</span>',
-    '</div>',
-    '<div class="os-wrap">',
-    '<div class="hd">',
-    '<div class="hd-logo">',
-    '<img src="./logo.png" alt="Logo" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">',
-    '<div class="hd-logo-txt" style="display:none">BEPI<br>Mataruco</div>',
-    '</div>',
-    '<div class="hd-title"><h1>Ordem de Servi\u00E7o de Manuten\u00E7\u00E3o</h1></div>',
-    '<div class="hd-meta">',
-    '<div class="hd-meta-row"><span>Setor:</span> ' + (o.setor ? o.setor.trim() : '—') + '</div>',
-    '<div class="hd-meta-row"><span>N\u00FAmero:</span> #' + String(o.id).padStart(4,'0') + '</div>',
-    '<div class="hd-meta-row"><span>Rev.:</span> 01 &nbsp;&nbsp; <span>FOR:</span> POP-5.1.1</div>',
-    '</div></div>',
-    '<div class="field-row"><div class="field-lbl">Nome do Equipamento</div><div class="field-val"></div></div>',
-    '<div class="field-row"><div class="field-lbl">Nome Solicitante</div><div class="field-val">' + (o.req || '') + '</div></div>',
-    '<div class="body-cols">',
-    '<div class="col-left"><div class="field-row" style="flex-direction:column;min-height:60px">',
-    '<div class="field-lbl" style="border-right:none">Servi\u00E7o Solicitado</div>',
-    '<div class="field-val" style="padding:3px 6px 8px">' + (o.desc || '') + '</div>',
-    '</div></div>',
-    '<div class="col-right">',
-    '<div class="block"><div class="block-lbl">Data / Hora</div><div>' + fmtD(o.data) + ' &nbsp; ' + (o.hora || '—') + '</div></div>',
-    '<div class="block"><div class="block-lbl">Parou equipamento?</div><div class="chk-row"><span class="chk-item">&#9744; Sim</span><span class="chk-item">&#9744; N\u00E3o</span></div></div>',
-    '<div class="block"><div class="block-lbl">Tipo</div><div class="chk-row">',
-    '<span class="chk-item">' + tipoCorr + ' Corretiva</span>',
-    '<span class="chk-item">' + tipoMelh + ' Melhoria</span>',
-    '<span class="chk-item">' + tipoPrev + ' Preventiva</span>',
-    '</div></div>',
-    '<div class="block"><div class="block-lbl">Equipe</div><div class="chk-row">',
-    '<span class="chk-item">' + natPred + ' Predial</span>',
-    '<span class="chk-item">' + natMec + ' Mec\u00E2nica</span>',
-    '<span class="chk-item">' + natElet + ' El\u00E9trica</span>',
-    '</div></div>',
-    '<div class="block"><div class="block-lbl">Prioridade</div><div class="chk-row">',
-    '<span class="chk-item">' + prioUrg + ' Urgente</span>',
-    '<span class="chk-item">' + prioMen + ' Menor</span>',
-    '<span class="chk-item">' + prioProg + ' Programado</span>',
-    '</div></div>',
-    '</div></div>',
-    '<div class="desc-block" style="border-bottom:1px solid #000">',
-    '<div class="field-lbl">Servi\u00E7o Realizado</div>',
-    '<div class="desc-area">' + (o.realizado || '') + '</div>',
-    '</div>',
-    '<div class="section-title">Checklist de Inspe\u00E7\u00E3o dos Servi\u00E7os</div>',
-    '<div style="padding:4px 6px;border-bottom:1px solid #000">',
-    '<table class="insp-table"><thead><tr>',
-    '<th>Nome</th><th>Data In\u00EDcio</th><th>Hora In\u00EDcio</th><th>Data Fim</th><th>Hora Fim</th>',
-    '</tr></thead><tbody>',
-    '<tr><td>' + (o.exec || '') + '</td><td>' + fmtD(o.dataProg) + '</td><td></td><td>' + fmtD(o.dataConcl) + '</td><td></td></tr>',
-    '<tr><td></td><td></td><td></td><td></td><td></td></tr>',
-    '<tr><td></td><td></td><td></td><td></td><td></td></tr>',
-    '</tbody></table></div>',
-    '<div class="two-cols">',
-    '<div class="seg-block"><div class="section-title">Seguran\u00E7a do Trabalho</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Prote\u00E7\u00F5es foram colocadas?</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Dispositivos de seguran\u00E7a est\u00E3o funcionando?</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Fechos foram fechados?</div>',
-    '<div class="liberacao" style="border-top:1px solid #ccc;margin-top:2px"><span style="font-size:7pt;color:#555">NA = N\u00E3o Aplic\u00E1vel</span>&nbsp;&nbsp;<strong>Libera\u00E7\u00E3o do Servi\u00E7o</strong></div>',
-    '</div>',
-    '<div class="limp-block"><div class="section-title">Limpeza e Seguran\u00E7a Alimentar</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Limpeza a ferramenta ou utensilios utilizados?</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Foram retiradas pe\u00E7as e/ou restos n\u00E3o utilizados?</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Retirada embalagens e outros res\u00EDduos (pano, gal\u00E3o)?</div>',
-    '<div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Res\u00EDduos de materiais retirados (metal, fios, cabo)?</div>',
-    '<div style="padding:3px 6px;display:flex;gap:20px;font-size:8pt;border-top:1px solid #ccc">',
-    '<span><strong>Cart\u00E3o:</strong></span><span>Nome: ___________________</span><span>Visto: ________</span>',
-    '</div></div></div>',
-    '<div class="sig-row">',
-    '<div class="sig-box"><div class="sig-lbl">Respons\u00E1vel pela Execu\u00E7\u00E3o do Servi\u00E7o</div><div class="sig-line">Assinatura / Data</div></div>',
-    '<div class="sig-box"><div class="sig-lbl">Respons\u00E1vel pelo Setor Solicitante</div><div class="sig-line">Assinatura / Data</div></div>',
-    '</div>',
-    '<div class="footer-note">Qualquer informa\u00E7\u00E3o adicional, utilizar o verso.</div>',
-    '</div></body></html>',
-  ].join('\n');
+  document.getElementById('pos-tipo').innerHTML =
+    '<span class="chk-item">' + chkHtml(o.tipo, 'Corretiva',  'Corretiva')  + '</span> ' +
+    '<span class="chk-item">' + chkHtml(o.tipo, 'melhoria',   'Melhoria')   + '</span> ' +
+    '<span class="chk-item">' + chkHtml(o.tipo, 'Preventiva', 'Preventiva') + '</span>';
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  const win  = window.open(url, '_blank', 'width=900,height=700');
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  document.getElementById('pos-equipe').innerHTML =
+    '<span class="chk-item">' + chkHtml(o.natureza, 'Predial',  'Predial')  + '</span> ' +
+    '<span class="chk-item">' + chkHtml(o.natureza, 'Mecânica', 'Mecânica') + '</span> ' +
+    '<span class="chk-item">' + chkHtml(o.natureza, 'Oficina',  'Elétrica') + '</span>';
+
+  document.getElementById('pos-prioridade').innerHTML =
+    '<span class="chk-item">' + chkHtml(o.prioridade, 'Alta',  'Urgente')    + '</span> ' +
+    '<span class="chk-item">' + chkHtml(o.prioridade, 'Média', 'Menor')      + '</span> ' +
+    '<span class="chk-item">' + chkHtml(o.prioridade, 'Baixa', 'Programado') + '</span>';
+
+  const logo = document.getElementById('pos-logo');
+  const logoTxt = document.getElementById('pos-logo-txt');
+  if (logo) {
+    logo.onerror = () => { logo.style.display = 'none'; if (logoTxt) logoTxt.style.display = 'block'; };
+    logo.style.display = '';
+    if (logoTxt) logoTxt.style.display = 'none';
+  }
+
+  window.print();
 }
 
 function abrirConcluirOS(id) {
