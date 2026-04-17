@@ -1653,6 +1653,7 @@
     <div class="modal-body" id="detail-body"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-os-detail')">Fechar</button>
+      <button class="btn btn-secondary btn-sm" id="detail-print-btn" onclick="imprimirOS(currentDetailId)">🖨 Imprimir</button>
       <button class="btn btn-success btn-sm" id="detail-concluir-btn" style="display:none" onclick="abrirConcluirOS(currentDetailId)">✓ Concluir</button>
       <button class="btn btn-danger btn-sm" id="detail-delete-btn">Excluir</button>
     </div>
@@ -3270,6 +3271,276 @@ function openDetail(id) {
 }
 
 let currentDetailId = null;
+
+function imprimirOS(id) {
+  const o = allOrdens().find(x => x.id === id);
+  if (!o) return;
+
+  const fmtD = s => s ? s.split('-').reverse().join('/') : '___/___/______';
+  const chk  = (val, opt) => val === opt
+    ? '&#9745;'   // ☑
+    : '&#9744;';  // ☐
+
+  const tipoCorr = chk(o.tipo, 'Corretiva');
+  const tipoMelh = chk(o.tipo, 'melhoria');
+  const tipoPrev = chk(o.tipo, 'Preventiva');
+
+  const natPred = chk(o.natureza, 'Predial');
+  const natMec  = chk(o.natureza, 'Mecânica');
+  const natElet = chk(o.natureza, 'Oficina');
+
+  const prioUrg  = chk(o.prioridade, 'Alta');
+  const prioMen  = chk(o.prioridade, 'Média');
+  const prioProg = chk(o.prioridade, 'Baixa');
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>O.S. #${o.id}</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm 12mm 12mm 12mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; background: #fff; }
+
+  .os-wrap { width: 100%; border: 2px solid #000; }
+
+  /* cabeçalho */
+  .hd { display: flex; align-items: stretch; border-bottom: 2px solid #000; }
+  .hd-logo { width: 80px; min-width: 80px; display: flex; align-items: center; justify-content: center;
+             border-right: 1px solid #000; padding: 6px; }
+  .hd-logo img { max-width: 68px; max-height: 52px; object-fit: contain; }
+  .hd-logo-txt { font-size: 8pt; font-weight: 700; text-align: center; line-height: 1.2; }
+  .hd-title { flex: 1; display: flex; flex-direction: column; justify-content: center;
+              padding: 4px 10px; }
+  .hd-title h1 { font-size: 13pt; font-weight: 700; text-align: center; }
+  .hd-meta { width: 130px; min-width: 130px; border-left: 1px solid #000;
+             display: flex; flex-direction: column; font-size: 8pt; }
+  .hd-meta-row { padding: 3px 6px; border-bottom: 1px solid #ccc; }
+  .hd-meta-row:last-child { border-bottom: none; }
+  .hd-meta-row span { font-weight: 700; }
+
+  /* linhas de campo simples */
+  .field-row { display: flex; border-bottom: 1px solid #000; }
+  .field-lbl { font-weight: 700; font-size: 7.5pt; white-space: nowrap;
+               padding: 3px 6px; border-right: 1px solid #ccc; min-width: 130px; }
+  .field-val { flex: 1; padding: 3px 6px; min-height: 20px; }
+
+  /* corpo principal 2 colunas */
+  .body-cols { display: flex; border-bottom: 1px solid #000; }
+  .col-left  { flex: 1; border-right: 1px solid #000; }
+  .col-right { width: 185px; min-width: 185px; }
+
+  .col-left .field-row { border-bottom: 1px solid #ccc; }
+  .col-left .field-row:last-child { border-bottom: none; }
+
+  .col-right .block { padding: 3px 6px; border-bottom: 1px solid #ccc; font-size: 8pt; }
+  .col-right .block:last-child { border-bottom: none; }
+  .col-right .block-lbl { font-weight: 700; font-size: 7pt; text-transform: uppercase;
+                          margin-bottom: 2px; }
+  .col-right .chk-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .col-right .chk-item { display: flex; align-items: center; gap: 2px; }
+
+  /* serviço descritivo */
+  .desc-block { border-bottom: 1px solid #000; }
+  .desc-block .field-lbl { border-right: none; min-width: unset; padding: 3px 6px 0; }
+  .desc-block .desc-area { padding: 2px 6px 6px; min-height: 38px; }
+
+  /* checklist inspeção */
+  .section-title { background: #ddd; font-weight: 700; font-size: 8pt;
+                   padding: 3px 6px; border-bottom: 1px solid #000; }
+  .insp-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .insp-table th { background: #eee; border: 1px solid #ccc; padding: 3px 5px;
+                   font-size: 7.5pt; text-align: center; }
+  .insp-table td { border: 1px solid #ccc; padding: 3px 5px; height: 18px; }
+  .insp-table td:first-child { min-width: 80px; }
+
+  /* segurança + limpeza */
+  .two-cols { display: flex; border-bottom: 1px solid #000; }
+  .seg-block { flex: 1; border-right: 1px solid #000; }
+  .limp-block { flex: 1; }
+  .seg-block .section-title { border-bottom: 1px solid #ccc; }
+  .limp-block .section-title { border-bottom: 1px solid #ccc; }
+  .chk-line { display: flex; align-items: flex-start; gap: 4px; padding: 2px 6px;
+              border-bottom: 1px solid #eee; font-size: 8pt; line-height: 1.3; }
+  .chk-line .opts { white-space: nowrap; }
+  .liberacao { padding: 3px 6px; font-size: 8pt; display: flex; align-items: center; gap: 8px; }
+
+  /* assinaturas */
+  .sig-row { display: flex; border-bottom: 1px solid #000; }
+  .sig-box { flex: 1; padding: 4px 6px; border-right: 1px solid #ccc; }
+  .sig-box:last-child { border-right: none; }
+  .sig-lbl { font-size: 7.5pt; font-weight: 700; margin-bottom: 18px; }
+  .sig-line { border-top: 1px solid #000; font-size: 7pt; text-align: center;
+              padding-top: 2px; color: #555; }
+
+  /* rodapé */
+  .footer-note { padding: 3px 6px; font-size: 7.5pt; font-style: italic; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print" style="padding:10px;background:#f0f0f0;margin-bottom:10px;display:flex;gap:10px;align-items:center">
+  <button onclick="window.print()" style="padding:6px 18px;font-size:10pt;cursor:pointer;background:#074798;color:#fff;border:none;border-radius:4px">🖨 Imprimir</button>
+  <button onclick="window.close()" style="padding:6px 14px;font-size:10pt;cursor:pointer">Fechar</button>
+  <span style="font-size:9pt;color:#555">Use Ctrl+P ou o botão acima. Recomendado: papel A4, margens mínimas.</span>
+</div>
+
+<div class="os-wrap">
+
+  <!-- ── CABEÇALHO ── -->
+  <div class="hd">
+    <div class="hd-logo">
+      <img src="./logo.png" alt="Logo"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="hd-logo-txt" style="display:none">BEPI<br>Mataruco</div>
+    </div>
+    <div class="hd-title">
+      <h1>Ordem de Serviço de Manutenção</h1>
+    </div>
+    <div class="hd-meta">
+      <div class="hd-meta-row"><span>Setor:</span> ${o.setor ? o.setor.trim() : '—'}</div>
+      <div class="hd-meta-row"><span>Número:</span> #${String(o.id).padStart(4,'0')}</div>
+      <div class="hd-meta-row"><span>Rev.:</span> 01 &nbsp;&nbsp; <span>FOR:</span> POP-5.1.1</div>
+    </div>
+  </div>
+
+  <!-- ── IDENTIFICAÇÃO ── -->
+  <div class="field-row">
+    <div class="field-lbl">Nome do Equipamento</div>
+    <div class="field-val"></div>
+  </div>
+  <div class="field-row">
+    <div class="field-lbl">Nome Solicitante</div>
+    <div class="field-val">${o.req || ''}</div>
+  </div>
+
+  <!-- ── CORPO: SERVIÇO SOLICITADO + DADOS LATERAIS ── -->
+  <div class="body-cols">
+    <div class="col-left">
+      <div class="field-row" style="flex-direction:column;min-height:60px">
+        <div class="field-lbl" style="border-right:none">Serviço Solicitado</div>
+        <div class="field-val" style="padding:3px 6px 8px">${o.desc || ''}</div>
+      </div>
+    </div>
+    <div class="col-right">
+      <div class="block">
+        <div class="block-lbl">Data / Hora</div>
+        <div>${fmtD(o.data)} &nbsp; ${o.hora || '—'}</div>
+      </div>
+      <div class="block">
+        <div class="block-lbl">Parou equipamento?</div>
+        <div class="chk-row">
+          <span class="chk-item">&#9744; Sim</span>
+          <span class="chk-item">&#9744; Não</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-lbl">Tipo</div>
+        <div class="chk-row">
+          <span class="chk-item">${tipoCorr} Corretiva</span>
+          <span class="chk-item">${tipoMelh} Melhoria</span>
+          <span class="chk-item">${tipoPrev} Preventiva</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-lbl">Equipe</div>
+        <div class="chk-row">
+          <span class="chk-item">${natPred} Predial</span>
+          <span class="chk-item">${natMec} Mecânica</span>
+          <span class="chk-item">${natElet} Elétrica</span>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-lbl">Prioridade</div>
+        <div class="chk-row">
+          <span class="chk-item">${prioUrg} Urgente</span>
+          <span class="chk-item">${prioMen} Menor</span>
+          <span class="chk-item">${prioProg} Programado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SERVIÇO REALIZADO ── -->
+  <div class="desc-block" style="border-bottom:1px solid #000">
+    <div class="field-lbl">Serviço Realizado</div>
+    <div class="desc-area">${o.realizado || ''}</div>
+  </div>
+
+  <!-- ── CHECKLIST DE INSPEÇÃO ── -->
+  <div class="section-title">Checklist de Inspeção dos Serviços</div>
+  <div style="padding:4px 6px;border-bottom:1px solid #000">
+    <table class="insp-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Data Início</th>
+          <th>Hora Início</th>
+          <th>Data Fim</th>
+          <th>Hora Fim</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>${o.exec || ''}</td><td>${fmtD(o.dataProg)}</td><td></td><td>${fmtD(o.dataConcl)}</td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SEGURANÇA + LIMPEZA ── -->
+  <div class="two-cols">
+    <div class="seg-block">
+      <div class="section-title">Segurança do Trabalho</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Proteções foram colocadas?</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Dispositivos de segurança estão funcionando?</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Fechos foram fechados?</div>
+      <div class="liberacao" style="border-top:1px solid #ccc;margin-top:2px">
+        <span style="font-size:7pt;color:#555">NA = Não Aplicável</span>
+        &nbsp;&nbsp; <strong>Liberação do Serviço</strong>
+      </div>
+    </div>
+    <div class="limp-block">
+      <div class="section-title">Limpeza e Segurança Alimentar</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Limpeza a ferramenta ou utensílios utilizados?</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Foram retiradas peças e/ou restos não utilizados?</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Retirada embalagens e outros resíduos (pano, galão)?</div>
+      <div class="chk-line"><span class="opts">&#9744; Sim &nbsp;&#9744; NA</span> &nbsp;Resíduos de materiais retirados (metal, fios, cabo)?</div>
+      <div style="padding:3px 6px;display:flex;gap:20px;font-size:8pt;border-top:1px solid #ccc">
+        <span><strong>Cartão:</strong></span>
+        <span>Nome: ___________________</span>
+        <span>Visto: ________</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ASSINATURAS ── -->
+  <div class="sig-row">
+    <div class="sig-box">
+      <div class="sig-lbl">Responsável pela Execução do Serviço</div>
+      <div class="sig-line">Assinatura / Data</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-lbl">Responsável pelo Setor Solicitante</div>
+      <div class="sig-line">Assinatura / Data</div>
+    </div>
+  </div>
+
+  <!-- ── RODAPÉ ── -->
+  <div class="footer-note">Qualquer informação adicional, utilizar o verso.</div>
+
+</div>
+</body>
+</html>`);
+  win.document.close();
+}
 
 function abrirConcluirOS(id) {
   currentDetailId = id;
