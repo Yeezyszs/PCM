@@ -1734,7 +1734,7 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="ci-tipo" value="">
-      <input type="hidden" id="ci-edit-idx" value="">
+      <input type="hidden" id="ci-edit-id" value="">
       <div class="form-grid full">
         <div class="form-group">
           <label>Nome do Item / Ferramenta</label>
@@ -3843,26 +3843,26 @@ function renderCadItens() {
   const eletrica = allFerretasEletrica();
   const mecanica = allFerretasMecanica();
 
-  document.getElementById('cad-eletrica-tbody').innerHTML = eletrica.map((f,i) => `
+  document.getElementById('cad-eletrica-tbody').innerHTML = eletrica.map(f => `
     <tr>
       <td>${h(f.nome)}</td>
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="editarItem('eletrica',${i})">Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${i})">✕</button>
+          <button class="btn btn-secondary btn-sm" onclick="editarItem('eletrica',${f.id})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirItem('eletrica',${f.id})">✕</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
 
-  document.getElementById('cad-mecanica-tbody').innerHTML = mecanica.map((f,i) => `
+  document.getElementById('cad-mecanica-tbody').innerHTML = mecanica.map(f => `
     <tr>
       <td>${h(f.nome)}</td>
       <td style="font-family:var(--mono)">${f.qty}</td>
       <td>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="editarItem('mecanica',${i})">Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${i})">✕</button>
+          <button class="btn btn-secondary btn-sm" onclick="editarItem('mecanica',${f.id})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirItem('mecanica',${f.id})">✕</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Nenhum item.</td></tr>';
@@ -3870,18 +3870,18 @@ function renderCadItens() {
 
 function openModalItem(tipo) {
   document.getElementById('ci-tipo').value = tipo;
-  document.getElementById('ci-edit-idx').value = '';
+  document.getElementById('ci-edit-id').value = '';
   document.getElementById('ci-nome').value = '';
   document.getElementById('ci-qty').value = '1';
   document.getElementById('modal-cad-item-title').textContent = 'Novo Item';
   openModal('modal-cad-item');
 }
 
-function editarItem(tipo, i) {
+function editarItem(tipo, id) {
   const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
-  const item = arr[i];
+  const item = arr.find(f => f.id === id);
   document.getElementById('ci-tipo').value = tipo;
-  document.getElementById('ci-edit-idx').value = i;
+  document.getElementById('ci-edit-id').value = id;
   document.getElementById('ci-nome').value = item.nome;
   document.getElementById('ci-qty').value = item.qty;
   document.getElementById('modal-cad-item-title').textContent = 'Editar Item';
@@ -3890,20 +3890,21 @@ function editarItem(tipo, i) {
 
 async function salvarItem() {
   const tipo = document.getElementById('ci-tipo').value;
-  const editIdx = document.getElementById('ci-edit-idx').value;
+  const editIdRaw = document.getElementById('ci-edit-id').value;
   const nome = document.getElementById('ci-nome').value.trim();
   const qty = parseInt(document.getElementById('ci-qty').value) || 1;
   if (!nome) { alert('Informe o nome do item.'); return; }
 
   const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
-  if (editIdx !== '') {
-    const i = parseInt(editIdx);
-    const item = arr[i];
+  if (editIdRaw !== '') {
+    const editId = parseInt(editIdRaw);
+    const pos = arr.findIndex(f => f.id === editId);
+    const item = arr[pos];
     if (sb && item && item.id) {
       const { error } = await sb.from('ferramentas').update({nome, qty}).eq('id', item.id);
       if (error) { showToast('Erro: '+error.message,true); return; }
     }
-    arr[i] = { ...item, nome, qty };
+    arr[pos] = { ...item, nome, qty };
     showToast('Item atualizado!');
   } else {
     const novoItem = {tipo, nome, qty, caixa: null, area: null};
@@ -3911,6 +3912,8 @@ async function salvarItem() {
       const { data: s, error } = await sb.from('ferramentas').insert([novoItem]).select().single();
       if (error) { showToast('Erro: '+error.message,true); return; }
       novoItem.id = s.id; showToast('Ferramenta salva!');
+    } else {
+      novoItem.id = Date.now();
     }
     arr.push(novoItem);
   }
@@ -3920,12 +3923,13 @@ async function salvarItem() {
   renderFerramentas();
 }
 
-async function excluirItem(tipo, i) {
+async function excluirItem(tipo, id) {
   if (!confirm('Excluir item?')) return;
   const arr = tipo === 'eletrica' ? STATE.ferramentasEletrica : STATE.ferramentasMecanica;
-  const item = arr[i];
-  if (sb && item && item.id) await sb.from('ferramentas').delete().eq('id', item.id);
-  arr.splice(i, 1);
+  const pos = arr.findIndex(f => f.id === id);
+  if (pos === -1) return;
+  if (sb) await sb.from('ferramentas').delete().eq('id', id);
+  arr.splice(pos, 1);
   renderCadItens();
   renderFerramentas();
 }
