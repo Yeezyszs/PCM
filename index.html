@@ -1886,7 +1886,7 @@
       <button class="modal-close" onclick="closeModal('modal-colaborador')">✕</button>
     </div>
     <div class="modal-body">
-      <input type="hidden" id="fc-edit-idx" value="">
+      <input type="hidden" id="fc-edit-id" value="">
       <div class="form-grid">
         <div class="form-group span2">
           <label>Nome Completo</label>
@@ -4211,24 +4211,24 @@ function renderColaboradores() {
       <td>${h(c.setor)}</td>
       <td>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="editarColaborador(${i})">Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="excluirColaborador(${i})">Excluir</button>
+          <button class="btn btn-secondary btn-sm" onclick="editarColaborador(${c.id})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirColaborador(${c.id})">Excluir</button>
         </div>
       </td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nenhum colaborador cadastrado</td></tr>';
 }
 
 function openModalColaborador() {
-  document.getElementById('fc-edit-idx').value = '';
+  document.getElementById('fc-edit-id').value = '';
   document.getElementById('fc-nome').value = '';
   document.getElementById('fc-setor').value = '';
   document.querySelector('#modal-colaborador .modal-title').textContent = 'Novo Colaborador';
   openModal('modal-colaborador');
 }
 
-function editarColaborador(i) {
-  const c = allColaboradores()[i];
-  document.getElementById('fc-edit-idx').value = i;
+function editarColaborador(id) {
+  const c = STATE.colaboradores.find(c => c.id === id);
+  document.getElementById('fc-edit-id').value = id;
   document.getElementById('fc-nome').value = c.nome;
   document.getElementById('fc-funcao').value = c.funcao;
   document.getElementById('fc-setor').value = c.setor;
@@ -4237,46 +4237,45 @@ function editarColaborador(i) {
 }
 
 async function salvarColaborador() {
-  const editIdx = document.getElementById('fc-edit-idx').value;
+  const editIdRaw = document.getElementById('fc-edit-id').value;
   const nome   = document.getElementById('fc-nome').value.trim();
   const funcao = document.getElementById('fc-funcao').value;
   const setor  = document.getElementById('fc-setor').value.trim();
   if (!nome || !setor) { alert('Preencha nome e setor.'); return; }
 
-  if (editIdx !== '') {
-    const i = parseInt(editIdx);
-    const colab = STATE.colaboradores[i];
+  if (editIdRaw !== '') {
+    const editId = parseInt(editIdRaw);
+    const pos = STATE.colaboradores.findIndex(c => c.id === editId);
+    const colab = STATE.colaboradores[pos];
     if (sb && colab && colab.id) {
       const { error } = await sb.from('colaboradores').update({nome, funcao, setor}).eq('id', colab.id);
       if (error) { showToast('Erro: ' + error.message, true); return; }
     }
-    STATE.colaboradores[i] = { ...colab, nome, funcao, setor };
+    STATE.colaboradores[pos] = { ...colab, nome, funcao, setor };
     showToast('Colaborador atualizado!');
   } else {
-    const maxId = allColaboradores().reduce((m,c) => Math.max(m, c.id||0), 0);
     const novoColab = {nome, funcao, setor};
     if (sb) {
       const { data: saved, error } = await sb.from('colaboradores').insert([novoColab]).select().single();
       if (error) { showToast('Erro: ' + error.message, true); return; }
       novoColab.id = saved.id; showToast('Colaborador salvo!');
-    } else { novoColab.id = maxId + 1; }
+    } else { novoColab.id = Date.now(); }
     STATE.colaboradores.push(novoColab);
   }
   closeModal('modal-colaborador');
-  document.getElementById('fc-edit-idx').value = '';
+  document.getElementById('fc-edit-id').value = '';
   document.getElementById('fc-nome').value = '';
   document.getElementById('fc-setor').value = '';
   document.querySelector('#modal-colaborador .modal-title').textContent = 'Novo Colaborador';
   renderColaboradores();
 }
 
-async function excluirColaborador(i) {
+async function excluirColaborador(id) {
   if (!confirm('Excluir colaborador?')) return;
-  const colab = STATE.colaboradores[i];
-  if (sb && colab && colab.id) {
-    await sb.from('colaboradores').delete().eq('id', colab.id);
-  }
-  STATE.colaboradores.splice(i, 1);
+  const pos = STATE.colaboradores.findIndex(c => c.id === id);
+  if (pos === -1) return;
+  if (sb) await sb.from('colaboradores').delete().eq('id', id);
+  STATE.colaboradores.splice(pos, 1);
   renderColaboradores();
 }
 
