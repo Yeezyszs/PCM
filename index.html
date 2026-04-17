@@ -1702,7 +1702,7 @@
       <button class="modal-close" onclick="closeModal('modal-cad-equip')">✕</button>
     </div>
     <div class="modal-body">
-      <input type="hidden" id="ce-edit-idx" value="">
+      <input type="hidden" id="ce-edit-id" value="">
       <div class="form-grid">
         <div class="form-group">
           <label>Setor</label>
@@ -3697,8 +3697,8 @@ function renderCadEquip() {
         <td style="color:var(--muted);font-size:.78rem">${e.componentes.length} componente(s)</td>
         <td>
           <div style="display:flex;gap:6px;">
-            <button class="btn btn-secondary btn-sm" onclick="editarEquipamento(${i})">Editar</button>
-            <button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${i})">Excluir</button>
+            <button class="btn btn-secondary btn-sm" onclick="editarEquipamento(${e.id})">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="excluirEquipamento(${e.id})">Excluir</button>
           </div>
         </td>
       </tr>`)
@@ -3714,9 +3714,9 @@ function openModal_cadEquip(edit=false) {
   openModal('modal-cad-equip');
 }
 
-function editarEquipamento(i) {
-  const e = allEquipamentos()[i];
-  document.getElementById('ce-edit-idx').value = i;
+function editarEquipamento(id) {
+  const e = STATE.equipamentos.find(e => e.id === id);
+  document.getElementById('ce-edit-id').value = id;
   // populate setor select
   const sel = document.getElementById('ce-setor');
   sel.innerHTML = allSetores().map(s => `<option value="${s}" ${s===e.setor?'selected':''}>${s}</option>`).join('');
@@ -3727,7 +3727,7 @@ function editarEquipamento(i) {
 }
 
 async function salvarEquipamento() {
-  const idx = document.getElementById('ce-edit-idx').value;
+  const editIdRaw = document.getElementById('ce-edit-id').value;
   const setor = document.getElementById('ce-setor').value.trim();
   const nome = document.getElementById('ce-nome').value.trim();
   const compsRaw = document.getElementById('ce-comps').value.trim();
@@ -3738,14 +3738,15 @@ async function salvarEquipamento() {
     return m ? {qty: parseInt(m[1]), nome: m[2].trim()} : {qty:1, nome: l.trim()};
   });
 
-  if (idx !== '') {
-    const i = parseInt(idx);
-    const equip = STATE.equipamentos[i];
+  if (editIdRaw !== '') {
+    const editId = parseInt(editIdRaw);
+    const pos = STATE.equipamentos.findIndex(e => e.id === editId);
+    const equip = STATE.equipamentos[pos];
     if (sb && equip && equip.id) {
       const { error } = await sb.from('equipamentos').update({setor,nome}).eq('id', equip.id);
       if (error) { showToast('Erro: '+error.message,true); return; }
     }
-    STATE.equipamentos[i] = { ...equip, setor, nome, componentes };
+    STATE.equipamentos[pos] = { ...equip, setor, nome, componentes };
     showToast('Equipamento atualizado!');
   } else {
     const newEquip = { setor, nome, componentes };
@@ -3753,24 +3754,27 @@ async function salvarEquipamento() {
       const { data: eq, error } = await sb.from('equipamentos').insert([{setor,nome}]).select().single();
       if (error) { showToast('Erro: '+error.message,true); return; }
       newEquip.id = eq.id; showToast('Equipamento salvo!');
+    } else {
+      newEquip.id = Date.now();
     }
     STATE.equipamentos.push(newEquip);
   }
   closeModal('modal-cad-equip');
-  document.getElementById('ce-edit-idx').value = '';
+  document.getElementById('ce-edit-id').value = '';
   document.getElementById('ce-nome').value = '';
   document.getElementById('ce-comps').value = '';
   renderCadEquip();
   renderEquipamentos();
 }
 
-async function excluirEquipamento(i) {
+async function excluirEquipamento(id) {
   if (!confirm('Excluir equipamento?')) return;
+  const pos = STATE.equipamentos.findIndex(e => e.id === id);
+  if (pos === -1) return;
   if (sb) {
-    const equip = STATE.equipamentos[i];
-    if (equip && equip.id) await sb.from('equipamentos').delete().eq('id', equip.id);
+    await sb.from('equipamentos').delete().eq('id', id);
   }
-  STATE.equipamentos.splice(i, 1);
+  STATE.equipamentos.splice(pos, 1);
   renderCadEquip();
   renderEquipamentos();
 }
@@ -3787,7 +3791,7 @@ function openModal(id) {
   }
 
   if (id === 'modal-cad-equip') {
-    const idx = document.getElementById('ce-edit-idx').value;
+    const idx = document.getElementById('ce-edit-id').value;
     if (!idx) {
       const sel = document.getElementById('ce-setor');
       sel.innerHTML = allSetores().map(s => `<option value="${s}">${s}</option>`).join('');
