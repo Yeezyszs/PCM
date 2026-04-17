@@ -2139,9 +2139,17 @@
 const SUPABASE_URL      = 'https://ajtmnlvnawwvygeskrtx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqdG1ubHZuYXd3dnlnZXNrcnR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzIxMzcsImV4cCI6MjA5MTQwODEzN30.Aor4M8vo1T4q9UeaCZtBD25KkH_2Feh9YQzNnTdkB60';
 
-const sb = (SUPABASE_URL !== 'COLE_SUA_URL_AQUI')
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+const sb = (() => {
+  if (SUPABASE_URL === 'COLE_SUA_URL_AQUI') return null;
+  try {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false }
+    });
+  } catch (e) {
+    console.warn('Supabase createClient falhou:', e);
+    return null;
+  }
+})();
 
 // ══════════════════════════════════════════
 // ESTADO GLOBAL (carregado do Supabase)
@@ -5383,8 +5391,14 @@ async function excluirCusto(id) {
 // INIT
 // ══════════════════════════════════════════
 (async () => {
-  await loadAll();
-  renderDashboard();
+  try {
+    await loadAll();
+    renderDashboard();
+  } catch (err) {
+    console.error('Erro fatal na inicialização:', err);
+    setLoadingMsg('Erro ao iniciar: ' + err.message);
+    setTimeout(hideLoading, 4000);
+  }
 })();
 </script>
 </body>
