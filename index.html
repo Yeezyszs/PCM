@@ -3477,34 +3477,84 @@ function osRow(o, withAction=false) {
 function openDetail(id) {
   const o = allOrdens().find(x => x.id === id);
   if (!o) return;
-  document.getElementById('detail-title').textContent = `Ordem de Serviço #${o.id}`;
-  document.getElementById('detail-body').innerHTML = `
-    <div class="os-detail">
-      <div class="os-field"><span class="lbl">Data</span><span class="val">${h(o.data)||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Hora</span><span class="val">${h(o.hora)||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Requisitante</span><span class="val">${h(o.req)}</span></div>
-      <div class="os-field"><span class="lbl">Setor</span><span class="val">${h(o.setor.trim())}</span></div>
-      <div class="os-field"><span class="lbl">Tipo</span><span class="val">${h(o.tipo)}</span></div>
-      <div class="os-field"><span class="lbl">Natureza</span><span class="val">${h(o.natureza)}</span></div>
-      <div class="os-field"><span class="lbl">Prioridade</span><span class="val">${h(o.prioridade)}</span></div>
-      <div class="os-field"><span class="lbl">Status</span><span class="val">${h(o.status)}</span></div>
-      <div class="os-field"><span class="lbl">Data Programada</span><span class="val">${h(o.dataProg)||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Data Conclusão</span><span class="val">${h(o.dataConcl)||'—'}</span></div>
-      <div class="os-field"><span class="lbl">Executante</span><span class="val">${h(o.exec)||'—'}</span></div>
-    </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Descrição</div>
-      <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:.85rem">${h(o.desc)}</div>
-    </div>
-    ${o.realizado ? `<div>
-      <div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Serviço Realizado</div>
-      <div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">${h(o.realizado)}</div>
-    </div>` : ''}
-  `;
-  // botão concluir — só para Em Aberto
+
+  const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
+  const lbl  = (title, val) =>
+    '<div class="os-field"><span class="lbl">' + title + '</span><span class="val">' + (val || '—') + '</span></div>';
+
+  // bloco de parada
+  const paradaEquipHtml = o.paradaEquip ? (
+    '<div style="grid-column:span 2;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:6px;padding:8px 12px;margin-top:4px">' +
+    '<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#fbbf24;font-weight:700;margin-bottom:6px">⚠ Parada de Equipamento</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
+    lbl('Início — Data', fmtD(o.paradaEquipIni)) +
+    lbl('Início — Hora', h(o.paradaEquipIniH)) +
+    lbl('Retorno — Data', fmtD(o.paradaEquipRet)) +
+    lbl('Retorno — Hora', h(o.paradaEquipRetH)) +
+    '</div></div>'
+  ) : '';
+
+  const paradaProdHtml = o.paradaProd ? (
+    '<div style="grid-column:span 2;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:8px 12px;margin-top:4px">' +
+    '<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#ef4444;font-weight:700;margin-bottom:6px">⛔ Parada de Produção</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
+    lbl('Início — Data', fmtD(o.paradaProdIni)) +
+    lbl('Início — Hora', h(o.paradaProdIniH)) +
+    lbl('Retorno — Data', fmtD(o.paradaProdRet)) +
+    lbl('Retorno — Hora', h(o.paradaProdRetH)) +
+    '</div></div>'
+  ) : '';
+
+  // checklist de execuções
+  const execucoes = STATE.osExecucoes.filter(e => e.os_id === id);
+  const checklistHtml = execucoes.length > 0 ? (
+    '<div style="margin-top:16px">' +
+    '<div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:8px">Checklist de Execução</div>' +
+    '<div style="overflow-x:auto"><table class="table" style="min-width:640px;font-size:.8rem"><thead><tr>' +
+    '<th>Mantenedor</th><th>Data Exec.</th><th>Hora Início</th><th>Data Fim</th><th>Hora Fim</th><th>Data Fech.</th><th>Assinatura</th>' +
+    '</tr></thead><tbody>' +
+    execucoes.map(e =>
+      '<tr>' +
+      '<td>' + h(e.mantenedor) + '</td>' +
+      '<td>' + fmtD(e.data_exec) + '</td>' +
+      '<td>' + h(e.hora_ini || '—') + '</td>' +
+      '<td>' + fmtD(e.data_fim) + '</td>' +
+      '<td>' + h(e.hora_fim || '—') + '</td>' +
+      '<td>' + fmtD(e.data_fech) + '</td>' +
+      '<td>' + h(e.assinatura || '—') + '</td>' +
+      '</tr>'
+    ).join('') +
+    '</tbody></table></div></div>'
+  ) : '';
+
+  document.getElementById('detail-title').textContent = 'Ordem de Serviço #' + String(o.id).padStart(4, '0');
+  document.getElementById('detail-body').innerHTML =
+    '<div class="os-detail">' +
+    lbl('Data',           fmtD(o.data)) +
+    lbl('Hora',           h(o.hora)) +
+    lbl('Requisitante',   h(o.req)) +
+    lbl('Setor',          h(o.setor ? o.setor.trim() : '')) +
+    lbl('Tipo',           h(o.tipo)) +
+    lbl('Demanda',        h(o.natureza)) +
+    lbl('Prioridade',     h(o.prioridade)) +
+    lbl('Status',         h(o.status)) +
+    lbl('Data Programada',fmtD(o.dataProg)) +
+    lbl('Data Conclusão', fmtD(o.dataConcl)) +
+    paradaEquipHtml +
+    paradaProdHtml +
+    '</div>' +
+    '<div style="margin-bottom:12px">' +
+    '<div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Descrição</div>' +
+    '<div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:.85rem">' + h(o.desc) + '</div>' +
+    '</div>' +
+    (o.realizado ?
+      '<div><div style="font-size:.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-bottom:5px">Serviço Realizado</div>' +
+      '<div style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);border-radius:6px;padding:10px 14px;font-size:.85rem">' + h(o.realizado) + '</div></div>'
+      : '') +
+    checklistHtml;
+
   currentDetailId = id;
-  const concluirBtn = document.getElementById('detail-concluir-btn');
-  concluirBtn.style.display = o.status === 'Em Aberto' ? 'inline-flex' : 'none';
+  document.getElementById('detail-concluir-btn').style.display = o.status === 'Em Aberto' ? 'inline-flex' : 'none';
 
   const delBtn = document.getElementById('detail-delete-btn');
   delBtn.style.display = 'inline-flex';
@@ -3516,6 +3566,7 @@ function openDetail(id) {
       showToast('O.S. excluída.');
     }
     STATE.ordens = STATE.ordens.filter(o => o.id !== id);
+    STATE.osExecucoes = STATE.osExecucoes.filter(e => e.os_id !== id);
     closeModal('modal-os-detail');
     renderDashboard();
     renderOrdens();
