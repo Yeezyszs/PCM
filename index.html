@@ -1779,29 +1779,46 @@
 
 <!-- ══ MODAL CONCLUIR O.S. ══ -->
 <div class="modal-overlay" id="modal-os-concluir">
-  <div class="modal" style="max-width:480px;">
+  <div class="modal" style="max-width:920px;">
     <div class="modal-hd">
       <div class="modal-title" id="concluir-title">Concluir O.S. #—</div>
       <button class="modal-close" onclick="closeModal('modal-os-concluir')">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="concluir-os-id" value="">
-      <div class="form-grid full">
-        <div class="form-group">
-          <label>Executante(s)</label>
-          <input type="text" id="concluir-exec" placeholder="Ex: Valmir / Luan">
-        </div>
+      <div class="form-grid">
         <div class="form-group">
           <label>Data de Conclusão</label>
           <input type="date" id="concluir-data">
         </div>
-        <div class="form-group">
-          <label>Horas de Parada</label>
-          <input type="number" id="concluir-horas-parada" placeholder="Ex: 2.5" min="0" step="0.1">
-        </div>
-        <div class="form-group">
+        <div class="form-group span2">
           <label>Serviço Realizado</label>
-          <textarea id="concluir-realizado" placeholder="Descreva o que foi feito…" rows="4" style="resize:vertical"></textarea>
+          <textarea id="concluir-realizado" placeholder="Descreva o que foi feito…" rows="3" style="resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <!-- Checklist de execução -->
+      <div style="margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-weight:600;font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Checklist de Execução</span>
+          <button class="btn btn-secondary btn-sm" onclick="addLinhaChecklist()">+ Mantenedor</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="table" style="min-width:760px">
+            <thead>
+              <tr>
+                <th>Mantenedor</th>
+                <th>Data Exec.</th>
+                <th>Hora Início</th>
+                <th>Data Fim</th>
+                <th>Hora Fim</th>
+                <th>Data Fech.</th>
+                <th>Assinatura</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="checklist-exec-tbody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -3566,51 +3583,85 @@ function toggleParadaProd() {
   document.getElementById('f-parada-prod-fields').style.display = show ? 'contents' : 'none';
 }
 
+function addLinhaChecklist(row = {}) {
+  const tbody = document.getElementById('checklist-exec-tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td><input type="text" class="cl-mantenedor" value="' + h(row.mantenedor || '') + '" placeholder="Nome" style="width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:inherit"></td>' +
+    '<td><input type="date" class="cl-data-exec" value="' + (row.data_exec || '') + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;color:inherit"></td>' +
+    '<td><input type="time" class="cl-hora-ini" value="' + (row.hora_ini || '') + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;color:inherit"></td>' +
+    '<td><input type="date" class="cl-data-fim" value="' + (row.data_fim || '') + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;color:inherit"></td>' +
+    '<td><input type="time" class="cl-hora-fim" value="' + (row.hora_fim || '') + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;color:inherit"></td>' +
+    '<td><input type="date" class="cl-data-fech" value="' + (row.data_fech || '') + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;color:inherit"></td>' +
+    '<td><input type="text" class="cl-assinatura" value="' + h(row.assinatura || '') + '" placeholder="Assinatura" style="width:100px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:inherit"></td>' +
+    '<td><button class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove()" style="padding:2px 7px">✕</button></td>';
+  tbody.appendChild(tr);
+}
+
 function abrirConcluirOS(id) {
   currentDetailId = id;
   const o = allOrdens().find(x => x.id === id);
   document.getElementById('concluir-os-id').value = id;
-  document.getElementById('concluir-exec').value = o?.exec || '';
   document.getElementById('concluir-realizado').value = o?.realizado || '';
   document.getElementById('concluir-data').value = new Date().toISOString().split('T')[0];
-  document.getElementById('concluir-title').textContent = `Concluir O.S. #${id}`;
+  document.getElementById('concluir-title').textContent = 'Concluir O.S. #' + id;
+
+  const tbody = document.getElementById('checklist-exec-tbody');
+  tbody.innerHTML = '';
+  const execucoes = STATE.osExecucoes.filter(e => e.os_id === id);
+  if (execucoes.length > 0) {
+    execucoes.forEach(e => addLinhaChecklist(e));
+  } else {
+    addLinhaChecklist();
+  }
+
   closeModal('modal-os-detail');
   openModal('modal-os-concluir');
 }
 
 async function confirmarConclusao() {
   const id = parseInt(document.getElementById('concluir-os-id').value);
-  const exec = document.getElementById('concluir-exec').value.trim() || null;
   const realizado = document.getElementById('concluir-realizado').value.trim() || null;
   const dataConcl = document.getElementById('concluir-data').value || new Date().toISOString().split('T')[0];
-  const horasParadaRaw = document.getElementById('concluir-horas-parada').value;
-  const horas_parada = horasParadaRaw !== '' ? parseFloat(horasParadaRaw) : null;
+
+  const rows = [];
+  document.querySelectorAll('#checklist-exec-tbody tr').forEach(tr => {
+    const mantenedor = tr.querySelector('.cl-mantenedor')?.value.trim() || null;
+    if (!mantenedor) return;
+    rows.push({
+      os_id:      id,
+      mantenedor,
+      data_exec:  tr.querySelector('.cl-data-exec')?.value  || null,
+      hora_ini:   tr.querySelector('.cl-hora-ini')?.value   || null,
+      data_fim:   tr.querySelector('.cl-data-fim')?.value   || null,
+      hora_fim:   tr.querySelector('.cl-hora-fim')?.value   || null,
+      data_fech:  tr.querySelector('.cl-data-fech')?.value  || null,
+      assinatura: tr.querySelector('.cl-assinatura')?.value.trim() || null,
+    });
+  });
+
+  const exec = rows.map(r => r.mantenedor).join(' / ') || null;
 
   if (sb) {
     const { error } = await sb.from('ordens').update({
-      status: 'Concluído',
-      data_concl: dataConcl,
-      exec,
-      realizado,
-      horas_parada,
+      status: 'Concluído', data_concl: dataConcl, exec, realizado,
     }).eq('id', id);
     if (error) { showToast('Erro: ' + error.message, true); return; }
+
+    await sb.from('os_execucoes').delete().eq('os_id', id);
+    if (rows.length > 0) {
+      const { error: e2 } = await sb.from('os_execucoes').insert(rows);
+      if (e2) { showToast('Erro no checklist: ' + e2.message, true); return; }
+    }
   }
 
   const idx = STATE.ordens.findIndex(o => o.id === id);
   if (idx !== -1) {
-    STATE.ordens[idx] = {
-      ...STATE.ordens[idx],
-      status: 'Concluído',
-      dataConcl,
-      data_concl: dataConcl,
-      exec,
-      realizado,
-      horas_parada,
-    };
+    STATE.ordens[idx] = { ...STATE.ordens[idx], status: 'Concluído', dataConcl, data_concl: dataConcl, exec, realizado };
   }
+  STATE.osExecucoes = STATE.osExecucoes.filter(e => e.os_id !== id).concat(rows);
 
-  showToast(`O.S. #${id} concluída!`);
+  showToast('O.S. #' + id + ' concluída!');
   closeModal('modal-os-concluir');
   renderDashboard();
   renderOrdens();
