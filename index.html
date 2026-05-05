@@ -1652,25 +1652,27 @@
           <label>Tipo</label>
           <select id="f-tipo">
             <option>Corretiva</option>
+            <option>Corretiva Programada</option>
             <option>Preventiva</option>
+            <option>Inspeção de Rota</option>
             <option>melhoria</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Natureza</label>
+          <label>Demanda</label>
           <select id="f-natureza">
             <option>Mecânica</option>
             <option>Elétrica</option>
             <option>Predial</option>
-            <option>Oficina</option>
           </select>
         </div>
         <div class="form-group">
           <label>Prioridade</label>
           <select id="f-prioridade">
-            <option>Alta</option>
-            <option>Média</option>
             <option>Baixa</option>
+            <option>Normal</option>
+            <option>Urgente</option>
+            <option>Emergente</option>
           </select>
         </div>
         <div class="form-group">
@@ -1696,6 +1698,59 @@
             <option>Concluído</option>
           </select>
         </div>
+
+        <!-- Parada de Equipamento -->
+        <div class="form-group span2" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="f-parada-equip" onchange="toggleParadaEquip()">
+            <span>Parada de Equipamento</span>
+          </label>
+        </div>
+        <div id="f-parada-equip-fields" style="display:none;contents">
+          <div class="form-group">
+            <label>Início — Data</label>
+            <input type="date" id="f-peq-ini-data">
+          </div>
+          <div class="form-group">
+            <label>Início — Hora</label>
+            <input type="time" id="f-peq-ini-hora">
+          </div>
+          <div class="form-group">
+            <label>Retorno — Data</label>
+            <input type="date" id="f-peq-ret-data">
+          </div>
+          <div class="form-group">
+            <label>Retorno — Hora</label>
+            <input type="time" id="f-peq-ret-hora">
+          </div>
+        </div>
+
+        <!-- Parada de Produção -->
+        <div class="form-group span2" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="f-parada-prod" onchange="toggleParadaProd()">
+            <span>Parada de Produção</span>
+          </label>
+        </div>
+        <div id="f-parada-prod-fields" style="display:none;contents">
+          <div class="form-group">
+            <label>Início — Data</label>
+            <input type="date" id="f-pprod-ini-data">
+          </div>
+          <div class="form-group">
+            <label>Início — Hora</label>
+            <input type="time" id="f-pprod-ini-hora">
+          </div>
+          <div class="form-group">
+            <label>Retorno — Data</label>
+            <input type="date" id="f-pprod-ret-data">
+          </div>
+          <div class="form-group">
+            <label>Retorno — Hora</label>
+            <input type="time" id="f-pprod-ret-hora">
+          </div>
+        </div>
+
       </div>
     </div>
     <div class="modal-footer">
@@ -2293,10 +2348,11 @@ let STATE = {
   ordens: [], equipamentos: [], preventiva: [], planos: [],
   lubrificacao: [], luExecucoes: [], colaboradores: [],
   ferramentasEletrica: [], ferramentasMecanica: [], caixasFerramentas: [],
-  setores: [], // setores extras além dos derivados de equipamentos
-  producao: [], // horas planejadas por mês/ano
-  custos: [],   // lançamentos de custos operacionais
-  paradas: [],  // paradas de fábrica com tipo/motivo
+  setores: [],
+  producao: [],
+  custos: [],
+  paradas: [],
+  osExecucoes: [],
   checkState: {},
 };
 
@@ -2362,7 +2418,8 @@ async function loadAll() {
       { data: setores,   error: e12},
       { data: producao,  error: e13},
       { data: custos,    error: e14},
-      { data: paradas,   error: e15},
+      { data: paradas,     error: e15},
+      { data: osExec,      error: e16},
     ] = await Promise.all([
       sb.from('ordens').select('*').order('id', { ascending: false }),
       sb.from('equipamentos').select('*').order('setor'),
@@ -2379,6 +2436,7 @@ async function loadAll() {
       sb.from('producao').select('*').order('ano').order('mes'),
       sb.from('custos').select('*').order('data', { ascending: false }),
       sb.from('paradas').select('*').order('data', { ascending: false }),
+      sb.from('os_execucoes').select('*').order('os_id'),
     ]);
 
     // e12–e15 são tolerados: tabelas podem não existir ainda
@@ -2396,10 +2454,21 @@ async function loadAll() {
     // Normalizar campo descricao → desc e snake_case → camelCase para compatibilidade
     STATE.ordens = (ordens || []).map(o => ({
       ...o,
-      desc:      o.descricao,
-      dataProg:  o.data_prog,
-      dataConcl: o.data_concl,
+      desc:           o.descricao,
+      dataProg:       o.data_prog,
+      dataConcl:      o.data_concl,
+      paradaEquip:    o.parada_equip    ?? false,
+      paradaEquipIni: o.parada_equip_ini,
+      paradaEquipIniH:o.parada_equip_ini_h,
+      paradaEquipRet: o.parada_equip_ret,
+      paradaEquipRetH:o.parada_equip_ret_h,
+      paradaProd:     o.parada_prod     ?? false,
+      paradaProdIni:  o.parada_prod_ini,
+      paradaProdIniH: o.parada_prod_ini_h,
+      paradaProdRet:  o.parada_prod_ret,
+      paradaProdRetH: o.parada_prod_ret_h,
     }));
+    STATE.osExecucoes = osExec || [];
 
     // Normalizar trimestre → trim (usado em renderPreventiva)
     STATE.preventiva = (prev || []).map(p => ({ ...p, trim: p.trimestre ?? p.trim }));
@@ -3169,39 +3238,63 @@ function goPage(id) {
 // SALVAR O.S.
 // ══════════════════════════════════════════
 async function salvarOS() {
-  const ordens = allOrdens();
-  const maxId = ordens.reduce((m, o) => Math.max(m, o.id), 0);
+  const peq  = document.getElementById('f-parada-equip').checked;
+  const pprod = document.getElementById('f-parada-prod').checked;
   const nova = {
-    id: maxId + 1,
-    data: document.getElementById('f-data').value,
-    hora: document.getElementById('f-hora').value,
-    req: document.getElementById('f-req').value || '—',
-    setor: document.getElementById('f-setor').value,
-    tipo: document.getElementById('f-tipo').value,
-    natureza: document.getElementById('f-natureza').value,
-    desc: document.getElementById('f-desc').value || '—',
-    prioridade: document.getElementById('f-prioridade').value,
-    dataProg: document.getElementById('f-prog').value || null,
-    dataConcl: document.getElementById('f-status').value === 'Concluído' ? new Date().toISOString().split('T')[0] : null,
-    realizado: document.getElementById('f-realizado').value || null,
-    exec: document.getElementById('f-exec').value || null,
-    status: document.getElementById('f-status').value,
+    data:           document.getElementById('f-data').value,
+    hora:           document.getElementById('f-hora').value,
+    req:            document.getElementById('f-req').value || '—',
+    setor:          document.getElementById('f-setor').value,
+    tipo:           document.getElementById('f-tipo').value,
+    natureza:       document.getElementById('f-natureza').value,
+    desc:           document.getElementById('f-desc').value || '—',
+    prioridade:     document.getElementById('f-prioridade').value,
+    dataProg:       document.getElementById('f-prog').value || null,
+    dataConcl:      document.getElementById('f-status').value === 'Concluído' ? new Date().toISOString().split('T')[0] : null,
+    realizado:      document.getElementById('f-realizado').value || null,
+    exec:           document.getElementById('f-exec').value || null,
+    status:         document.getElementById('f-status').value,
+    paradaEquip:    peq,
+    paradaEquipIni: peq ? document.getElementById('f-peq-ini-data').value || null : null,
+    paradaEquipIniH:peq ? document.getElementById('f-peq-ini-hora').value || null : null,
+    paradaEquipRet: peq ? document.getElementById('f-peq-ret-data').value || null : null,
+    paradaEquipRetH:peq ? document.getElementById('f-peq-ret-hora').value || null : null,
+    paradaProd:     pprod,
+    paradaProdIni:  pprod ? document.getElementById('f-pprod-ini-data').value || null : null,
+    paradaProdIniH: pprod ? document.getElementById('f-pprod-ini-hora').value || null : null,
+    paradaProdRet:  pprod ? document.getElementById('f-pprod-ret-data').value || null : null,
+    paradaProdRetH: pprod ? document.getElementById('f-pprod-ret-hora').value || null : null,
   };
   if (sb) {
     const { data: saved, error } = await sb.from('ordens').insert([{
       data: nova.data, hora: nova.hora, req: nova.req, setor: nova.setor,
       tipo: nova.tipo, natureza: nova.natureza, descricao: nova.desc,
       prioridade: nova.prioridade, data_prog: nova.dataProg || null,
-      realizado: nova.realizado || null, exec: nova.exec || null, status: nova.status
+      realizado: nova.realizado || null, exec: nova.exec || null, status: nova.status,
+      parada_equip:      nova.paradaEquip,
+      parada_equip_ini:  nova.paradaEquipIni,
+      parada_equip_ini_h:nova.paradaEquipIniH,
+      parada_equip_ret:  nova.paradaEquipRet,
+      parada_equip_ret_h:nova.paradaEquipRetH,
+      parada_prod:       nova.paradaProd,
+      parada_prod_ini:   nova.paradaProdIni,
+      parada_prod_ini_h: nova.paradaProdIniH,
+      parada_prod_ret:   nova.paradaProdRet,
+      parada_prod_ret_h: nova.paradaProdRetH,
     }]).select().single();
     if (error) { showToast('Erro ao salvar O.S.: ' + error.message, true); return; }
     nova.id = saved.id;
     showToast('O.S. #' + saved.id + ' criada!');
+  } else {
+    nova.id = Date.now();
   }
   STATE.ordens.unshift(nova);
   closeModal('modal-os');
   document.getElementById('f-data').value = '';
   document.getElementById('f-desc').value = '';
+  document.getElementById('f-parada-equip').checked = false;
+  document.getElementById('f-parada-prod').checked  = false;
+  toggleParadaEquip(); toggleParadaProd();
   renderDashboard();
   renderOrdens();
 }
@@ -3214,7 +3307,7 @@ function renderDashboard() {
   const total = ordens.length;
   const abertas = ordens.filter(o => o.status === 'Em Aberto').length;
   const concluidas = ordens.filter(o => o.status === 'Concluído').length;
-  const alta = ordens.filter(o => o.prioridade === 'Alta').length;
+  const alta = ordens.filter(o => o.prioridade === 'Urgente' || o.prioridade === 'Emergente').length;
 
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card yellow">
@@ -3322,7 +3415,7 @@ function dashRow(o) {
   const statusBadge = o.status === 'Concluído'
     ? '<span class="badge badge-green">✓ Concluído</span>'
     : '<span class="badge badge-red">● Em Aberto</span>';
-  const pClass = o.prioridade === 'Alta' ? 'prio-alta' : o.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
+  const pClass = o.prioridade === 'Emergente' ? 'prio-alta' : o.prioridade === 'Urgente' ? 'prio-alta' : o.prioridade === 'Normal' ? 'prio-media' : 'prio-baixa';
   const dataFmt = o.data ? o.data.split('-').reverse().join('/') : '—';
   return `<tr style="cursor:pointer" onclick="openDetail(${o.id})">
     <td><span style="font-family:var(--mono);color:var(--muted)">#${o.id}</span></td>
@@ -3341,7 +3434,7 @@ function osRow(o, withAction=false) {
   const statusBadge = o.status === 'Concluído'
     ? '<span class="badge badge-green">✓ Concluído</span>'
     : '<span class="badge badge-red">● Em Aberto</span>';
-  const pClass = o.prioridade === 'Alta' ? 'prio-alta' : o.prioridade === 'Média' ? 'prio-media' : 'prio-baixa';
+  const pClass = o.prioridade === 'Emergente' ? 'prio-alta' : o.prioridade === 'Urgente' ? 'prio-alta' : o.prioridade === 'Normal' ? 'prio-media' : 'prio-baixa';
   const dataFmt = o.data ? o.data.split('-').reverse().join('/') : '—';
   const action = withAction
     ? `<td><div style="display:flex;gap:6px">
@@ -3462,6 +3555,15 @@ function imprimirOS(id) {
   }
 
   window.print();
+}
+
+function toggleParadaEquip() {
+  const show = document.getElementById('f-parada-equip').checked;
+  document.getElementById('f-parada-equip-fields').style.display = show ? 'contents' : 'none';
+}
+function toggleParadaProd() {
+  const show = document.getElementById('f-parada-prod').checked;
+  document.getElementById('f-parada-prod-fields').style.display = show ? 'contents' : 'none';
 }
 
 function abrirConcluirOS(id) {
