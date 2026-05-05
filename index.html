@@ -1706,7 +1706,7 @@
             <span>Parada de Equipamento</span>
           </label>
         </div>
-        <div id="f-parada-equip-fields" style="display:none;contents">
+        <div id="f-parada-equip-fields" style="display:none;grid-template-columns:1fr 1fr;gap:12px;grid-column:span 2">
           <div class="form-group">
             <label>Início — Data</label>
             <input type="date" id="f-peq-ini-data">
@@ -1732,7 +1732,7 @@
             <span>Parada de Produção</span>
           </label>
         </div>
-        <div id="f-parada-prod-fields" style="display:none;contents">
+        <div id="f-parada-prod-fields" style="display:none;grid-template-columns:1fr 1fr;gap:12px;grid-column:span 2">
           <div class="form-group">
             <label>Início — Data</label>
             <input type="date" id="f-pprod-ini-data">
@@ -3682,11 +3682,11 @@ function imprimirOS(id) {
 
 function toggleParadaEquip() {
   const show = document.getElementById('f-parada-equip').checked;
-  document.getElementById('f-parada-equip-fields').style.display = show ? 'contents' : 'none';
+  document.getElementById('f-parada-equip-fields').style.display = show ? 'grid' : 'none';
 }
 function toggleParadaProd() {
   const show = document.getElementById('f-parada-prod').checked;
-  document.getElementById('f-parada-prod-fields').style.display = show ? 'contents' : 'none';
+  document.getElementById('f-parada-prod-fields').style.display = show ? 'grid' : 'none';
 }
 
 function addLinhaChecklist(row = {}) {
