@@ -2290,25 +2290,43 @@
       </div>
       <div class="col-right">
         <div class="block"><div class="block-lbl">Data / Hora</div><div id="pos-datahora"></div></div>
-        <div class="block"><div class="block-lbl">Parou equipamento?</div><div class="chk-row"><span class="chk-item">&#9744; Sim</span><span class="chk-item">&#9744; Não</span></div></div>
         <div class="block"><div class="block-lbl">Tipo</div><div class="chk-row" id="pos-tipo"></div></div>
-        <div class="block"><div class="block-lbl">Equipe</div><div class="chk-row" id="pos-equipe"></div></div>
+        <div class="block"><div class="block-lbl">Demanda</div><div class="chk-row" id="pos-equipe"></div></div>
         <div class="block"><div class="block-lbl">Prioridade</div><div class="chk-row" id="pos-prioridade"></div></div>
       </div>
     </div>
+
+    <!-- Parada de Equipamento (visível só se marcada) -->
+    <div id="pos-parada-equip-section" style="display:none;border-bottom:1px solid #000">
+      <div style="background:#fff3cd;font-weight:700;font-size:8pt;padding:3px 6px;border-bottom:1px solid #ccc">Parada de Equipamento</div>
+      <div style="display:flex">
+        <div style="flex:1;padding:3px 6px;border-right:1px solid #ccc;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">INÍCIO DATA</div><div id="pos-peq-ini-data"></div></div>
+        <div style="flex:1;padding:3px 6px;border-right:1px solid #ccc;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">INÍCIO HORA</div><div id="pos-peq-ini-hora"></div></div>
+        <div style="flex:1;padding:3px 6px;border-right:1px solid #ccc;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">RETORNO DATA</div><div id="pos-peq-ret-data"></div></div>
+        <div style="flex:1;padding:3px 6px;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">RETORNO HORA</div><div id="pos-peq-ret-hora"></div></div>
+      </div>
+    </div>
+
+    <!-- Parada de Produção (visível só se marcada) -->
+    <div id="pos-parada-prod-section" style="display:none;border-bottom:1px solid #000">
+      <div style="background:#f8d7da;font-weight:700;font-size:8pt;padding:3px 6px;border-bottom:1px solid #ccc">Parada de Produção</div>
+      <div style="display:flex">
+        <div style="flex:1;padding:3px 6px;border-right:1px solid #ccc;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">INÍCIO DATA</div><div id="pos-pprod-ini-data"></div></div>
+        <div style="flex:1;padding:3px 6px;border-right:1px solid #ccc;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">INÍCIO HORA</div><div id="pos-pprod-ini-hora"></div></div>
+        <div style="flex:1;padding:3px 6px;border-right:1px solid #ccc;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">RETORNO DATA</div><div id="pos-pprod-ret-data"></div></div>
+        <div style="flex:1;padding:3px 6px;font-size:8pt"><div style="font-weight:700;font-size:7pt;margin-bottom:2px">RETORNO HORA</div><div id="pos-pprod-ret-hora"></div></div>
+      </div>
+    </div>
+
     <div class="desc-block" style="border-bottom:1px solid #000">
       <div class="field-lbl">Serviço Realizado</div>
       <div class="desc-area" id="pos-realizado"></div>
     </div>
-    <div class="section-title">Checklist de Inspeção dos Serviços</div>
+    <div class="section-title">Checklist de Execução dos Serviços</div>
     <div style="padding:4px 6px;border-bottom:1px solid #000">
       <table class="insp-table"><thead><tr>
-        <th>Nome</th><th>Data Início</th><th>Hora Início</th><th>Data Fim</th><th>Hora Fim</th>
-      </tr></thead><tbody>
-        <tr><td id="pos-exec"></td><td id="pos-dataprog"></td><td></td><td id="pos-dataconcl"></td><td></td></tr>
-        <tr><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr><td></td><td></td><td></td><td></td><td></td></tr>
-      </tbody></table>
+        <th>Mantenedor</th><th>Data Exec.</th><th>Hora Início</th><th>Data Fim</th><th>Hora Fim</th><th>Data Fech.</th><th>Assinatura</th>
+      </tr></thead><tbody id="pos-checklist-tbody"></tbody></table>
     </div>
     <div class="two-cols">
       <div class="seg-block">
@@ -3580,39 +3598,76 @@ function imprimirOS(id) {
   const o = allOrdens().find(x => x.id === id);
   if (!o) return;
 
-  const fmtD = s => s ? s.split('-').reverse().join('/') : '___/___/______';
-  const chkHtml = (val, opt, label) =>
-    (val === opt ? '\u2611' : '\u2610') + ' ' + label;
+  const fmtD = s => s ? s.split('-').reverse().join('/') : '—';
+  const chk  = (val, opt, label) => (val === opt ? '☑' : '☐') + ' ' + label;
+  const set  = (elId, txt) => { const el = document.getElementById(elId); if (el) el.textContent = txt; };
 
-  const set = (elId, txt) => {
-    const el = document.getElementById(elId);
-    if (el) el.textContent = txt;
-  };
-
-  set('pos-setor',   o.setor ? o.setor.trim() : '—');
-  set('pos-numero',  '#' + String(o.id).padStart(4, '0'));
-  set('pos-req',     o.req || '');
+  set('pos-setor',    o.setor ? o.setor.trim() : '—');
+  set('pos-numero',   '#' + String(o.id).padStart(4, '0'));
+  set('pos-req',      o.req || '');
   set('pos-descricao', o.desc || '');
   set('pos-datahora',  fmtD(o.data) + '   ' + (o.hora || '—'));
   set('pos-realizado', o.realizado || '');
-  set('pos-exec',      o.exec || '');
-  set('pos-dataprog',  fmtD(o.dataProg));
-  set('pos-dataconcl', fmtD(o.dataConcl));
 
   document.getElementById('pos-tipo').innerHTML =
-    '<span class="chk-item">' + chkHtml(o.tipo, 'Corretiva',  'Corretiva')  + '</span> ' +
-    '<span class="chk-item">' + chkHtml(o.tipo, 'melhoria',   'Melhoria')   + '</span> ' +
-    '<span class="chk-item">' + chkHtml(o.tipo, 'Preventiva', 'Preventiva') + '</span>';
+    '<span class="chk-item">' + chk(o.tipo, 'Corretiva',           'Corretiva')       + '</span> ' +
+    '<span class="chk-item">' + chk(o.tipo, 'Corretiva Programada','Corr. Programada') + '</span> ' +
+    '<span class="chk-item">' + chk(o.tipo, 'Preventiva',          'Preventiva')       + '</span> ' +
+    '<span class="chk-item">' + chk(o.tipo, 'Inspeção de Rota',    'Insp. Rota')        + '</span> ' +
+    '<span class="chk-item">' + chk(o.tipo, 'melhoria',            'Melhoria')         + '</span>';
 
   document.getElementById('pos-equipe').innerHTML =
-    '<span class="chk-item">' + chkHtml(o.natureza, 'Predial',  'Predial')  + '</span> ' +
-    '<span class="chk-item">' + chkHtml(o.natureza, 'Mecânica', 'Mecânica') + '</span> ' +
-    '<span class="chk-item">' + chkHtml(o.natureza, 'Oficina',  'Elétrica') + '</span>';
+    '<span class="chk-item">' + chk(o.natureza, 'Predial',  'Predial')  + '</span> ' +
+    '<span class="chk-item">' + chk(o.natureza, 'Elétrica', 'Elétrica') + '</span> ' +
+    '<span class="chk-item">' + chk(o.natureza, 'Mecânica', 'Mecânica') + '</span>';
 
   document.getElementById('pos-prioridade').innerHTML =
-    '<span class="chk-item">' + chkHtml(o.prioridade, 'Alta',  'Urgente')    + '</span> ' +
-    '<span class="chk-item">' + chkHtml(o.prioridade, 'Média', 'Menor')      + '</span> ' +
-    '<span class="chk-item">' + chkHtml(o.prioridade, 'Baixa', 'Programado') + '</span>';
+    '<span class="chk-item">' + chk(o.prioridade, 'Baixa',    'Baixa')     + '</span> ' +
+    '<span class="chk-item">' + chk(o.prioridade, 'Normal',   'Normal')    + '</span> ' +
+    '<span class="chk-item">' + chk(o.prioridade, 'Urgente',  'Urgente')   + '</span> ' +
+    '<span class="chk-item">' + chk(o.prioridade, 'Emergente','Emergente') + '</span>';
+
+  // Parada de Equipamento
+  const peqSec = document.getElementById('pos-parada-equip-section');
+  if (o.paradaEquip) {
+    peqSec.style.display = 'block';
+    set('pos-peq-ini-data', fmtD(o.paradaEquipIni));
+    set('pos-peq-ini-hora', o.paradaEquipIniH || '—');
+    set('pos-peq-ret-data', fmtD(o.paradaEquipRet));
+    set('pos-peq-ret-hora', o.paradaEquipRetH || '—');
+  } else { peqSec.style.display = 'none'; }
+
+  // Parada de Produção
+  const pprodSec = document.getElementById('pos-parada-prod-section');
+  if (o.paradaProd) {
+    pprodSec.style.display = 'block';
+    set('pos-pprod-ini-data', fmtD(o.paradaProdIni));
+    set('pos-pprod-ini-hora', o.paradaProdIniH || '—');
+    set('pos-pprod-ret-data', fmtD(o.paradaProdRet));
+    set('pos-pprod-ret-hora', o.paradaProdRetH || '—');
+  } else { pprodSec.style.display = 'none'; }
+
+  // Checklist de execução
+  const execucoes = STATE.osExecucoes.filter(e => e.os_id === id);
+  const tbody = document.getElementById('pos-checklist-tbody');
+  if (execucoes.length > 0) {
+    tbody.innerHTML = execucoes.map(e =>
+      '<tr>' +
+      '<td>' + h(e.mantenedor || '') + '</td>' +
+      '<td>' + fmtD(e.data_exec) + '</td>' +
+      '<td>' + h(e.hora_ini || '') + '</td>' +
+      '<td>' + fmtD(e.data_fim) + '</td>' +
+      '<td>' + h(e.hora_fim || '') + '</td>' +
+      '<td>' + fmtD(e.data_fech) + '</td>' +
+      '<td>' + h(e.assinatura || '') + '</td>' +
+      '</tr>'
+    ).join('');
+  } else {
+    tbody.innerHTML =
+      '<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>' +
+      '<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>' +
+      '<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+  }
 
   const logo = document.getElementById('pos-logo');
   const logoTxt = document.getElementById('pos-logo-txt');
