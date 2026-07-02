@@ -1023,11 +1023,11 @@ function renderDashboard() {
   const tipos = {};
   ordens.forEach(o => { tipos[o.tipo] = (tipos[o.tipo]||0)+1; });
   const maxTipo = Math.max(...Object.values(tipos));
-  const colors = { 'Corretiva': '#f87171', 'melhoria': '#60b8ff', 'Preventiva': '#34d399' };
+  const colors = { 'Corretiva': '#dc2626', 'Corretiva Programada': '#ea580c', 'melhoria': '#2563eb', 'Preventiva': '#0a9e6e', 'Inspeção de Rota': '#7c3aed' };
   document.getElementById('chart-tipo').innerHTML = Object.entries(tipos).map(([k,v]) =>
     `<div class="bar-item">
       <div class="bar-label">${k}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxTipo*100)}%;background:${colors[k]||'#F1FFFF'}"></div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxTipo*100)}%;background:${colors[k]||'#074798'}"></div></div>
       <div class="bar-val">${v}</div>
     </div>`
   ).join('');
@@ -1036,7 +1036,7 @@ function renderDashboard() {
   const setores = {};
   ordens.forEach(o => { setores[o.setor.trim()] = (setores[o.setor.trim()]||0)+1; });
   const maxSet = Math.max(...Object.values(setores));
-  const setColors = ['#F1FFFF','#60b8ff','#34d399','#f87171','#a78bfa','#38bdf8'];
+  const setColors = ['#074798','#2563eb','#0a9e6e','#dc2626','#7c3aed','#0891b2'];
   let si = 0;
   document.getElementById('chart-setor').innerHTML = Object.entries(setores)
     .sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v]) =>
@@ -1145,7 +1145,7 @@ function openDetail(id) {
   // bloco de parada
   const paradaEquipHtml = o.paradaEquip ? (
     '<div style="grid-column:span 2;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:6px;padding:8px 12px;margin-top:4px">' +
-    '<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#fbbf24;font-weight:700;margin-bottom:6px">⚠ Parada de Equipamento</div>' +
+    '<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#b45309;font-weight:700;margin-bottom:6px">⚠ Parada de Equipamento</div>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
     lbl('Início — Data', fmtD(o.paradaEquipIni)) +
     lbl('Início — Hora', h(o.paradaEquipIniH)) +
@@ -1156,7 +1156,7 @@ function openDetail(id) {
 
   const paradaProdHtml = o.paradaProd ? (
     '<div style="grid-column:span 2;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:8px 12px;margin-top:4px">' +
-    '<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#ef4444;font-weight:700;margin-bottom:6px">⛔ Parada de Produção</div>' +
+    '<div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#b91c1c;font-weight:700;margin-bottom:6px">⛔ Parada de Produção</div>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
     lbl('Início — Data', fmtD(o.paradaProdIni)) +
     lbl('Início — Hora', h(o.paradaProdIniH)) +
@@ -2123,7 +2123,7 @@ function renderCaixasFerramentas() {
     caixas[f.caixa].push(f);
   });
 
-  const cores = { VERDE: '#34d399', VERMELHA: '#f87171' };
+  const cores = { VERDE: '#0a9e6e', VERMELHA: '#dc2626' };
 
   const caixaHtml = Object.entries(caixas).map(([cor, items]) => `
     <div class="checklist-card" style="border-top:3px solid ${cores[cor]||'var(--border)'}">
@@ -2593,8 +2593,8 @@ function renderChartDisp() {
       datasets: [{
         label: 'Disponibilidade (%)',
         data: valores,
-        borderColor: '#34d399',
-        backgroundColor: 'rgba(52,211,153,.1)',
+        borderColor: '#0a9e6e',
+        backgroundColor: 'rgba(10,158,110,.12)',
         borderWidth: 2,
         tension: 0.35,
         fill: true,
@@ -2605,8 +2605,8 @@ function renderChartDisp() {
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,.07)' }, ticks: { color: '#7ca3c8', callback: v => v + '%' } },
-        x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#7ca3c8' } },
+        y: { min: 0, max: 100, grid: { color: 'rgba(15,23,42,.07)' }, ticks: { color: '#64748b', callback: v => v + '%' } },
+        x: { grid: { color: 'rgba(15,23,42,.05)' }, ticks: { color: '#64748b' } },
       },
       plugins: { legend: { display: false } },
     }
@@ -2654,17 +2654,17 @@ function renderChartMttr() {
     data: {
       labels: meses.map(m => m.label),
       datasets: [
-        { label: 'MTTR (h)', data: mttrVals, backgroundColor: 'rgba(248,113,113,.7)', borderRadius: 4, spanGaps: true },
-        { label: 'MTBF (h)', data: mtbfVals, backgroundColor: 'rgba(96,165,250,.7)',  borderRadius: 4, spanGaps: true },
+        { label: 'MTTR (h)', data: mttrVals, backgroundColor: 'rgba(220,38,38,.7)', borderRadius: 4, spanGaps: true },
+        { label: 'MTBF (h)', data: mtbfVals, backgroundColor: 'rgba(37,99,235,.7)',  borderRadius: 4, spanGaps: true },
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y: { grid: { color: 'rgba(255,255,255,.07)' }, ticks: { color: '#7ca3c8' } },
-        x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#7ca3c8' } },
+        y: { grid: { color: 'rgba(15,23,42,.07)' }, ticks: { color: '#64748b' } },
+        x: { grid: { color: 'rgba(15,23,42,.05)' }, ticks: { color: '#64748b' } },
       },
-      plugins: { legend: { labels: { color: '#7ca3c8', boxWidth: 12 } } },
+      plugins: { legend: { labels: { color: '#64748b', boxWidth: 12 } } },
     }
   });
 }
@@ -2689,14 +2689,14 @@ function renderCustos(custos) {
         labels: cats,
         datasets: [{
           data: totais,
-          backgroundColor: ['rgba(248,113,113,.8)','rgba(52,211,153,.8)','rgba(96,165,250,.8)','rgba(251,191,36,.8)','rgba(167,139,250,.8)'],
+          backgroundColor: ['rgba(220,38,38,.8)','rgba(10,158,110,.8)','rgba(37,99,235,.8)','rgba(217,119,6,.8)','rgba(124,58,237,.8)'],
           borderWidth: 0,
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'right', labels: { color: '#7ca3c8', boxWidth: 12, font: { size: 11 } } },
+          legend: { position: 'right', labels: { color: '#64748b', boxWidth: 12, font: { size: 11 } } },
         },
       }
     });
@@ -2729,31 +2729,31 @@ function renderCustos(custos) {
 // ══════════════════════════════════════════
 
 const CHART_COLORS = {
-  'Manutenção / Quebra':    'rgba(248,113,113,.8)',
-  'Queda de Energia':       'rgba(251,191,36,.8)',
-  'Falta de Matéria Prima': 'rgba(167,139,250,.8)',
-  'Outro':                  'rgba(148,163,184,.8)',
+  'Manutenção / Quebra':    'rgba(220,38,38,.8)',
+  'Queda de Energia':       'rgba(217,119,6,.8)',
+  'Falta de Matéria Prima': 'rgba(124,58,237,.8)',
+  'Outro':                  'rgba(100,116,139,.8)',
 };
 const CHART_COLORS_TURNO = {
-  '1° Turno':    'rgba(96,165,250,.8)',
-  '2° Turno':    'rgba(52,211,153,.8)',
-  'Revezamento': 'rgba(251,191,36,.8)',
+  '1° Turno':    'rgba(37,99,235,.8)',
+  '2° Turno':    'rgba(10,158,110,.8)',
+  'Revezamento': 'rgba(217,119,6,.8)',
 };
 
 // Paleta para setores (até 10)
 const SETOR_PALETTE = [
-  'rgba(96,165,250,.8)', 'rgba(52,211,153,.8)', 'rgba(248,113,113,.8)',
-  'rgba(251,191,36,.8)', 'rgba(167,139,250,.8)', 'rgba(34,211,238,.8)',
-  'rgba(249,115,22,.8)', 'rgba(236,72,153,.8)',  'rgba(16,185,129,.8)',
-  'rgba(148,163,184,.8)',
+  'rgba(37,99,235,.8)',  'rgba(10,158,110,.8)', 'rgba(220,38,38,.8)',
+  'rgba(217,119,6,.8)',  'rgba(124,58,237,.8)', 'rgba(8,145,178,.8)',
+  'rgba(234,88,12,.8)',  'rgba(219,39,119,.8)', 'rgba(5,150,105,.8)',
+  'rgba(100,116,139,.8)',
 ];
 
 const CHART_OPT_BASE = {
   responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { labels: { color: '#7ca3c8', boxWidth: 12, font: { size: 11 } } } },
+  plugins: { legend: { labels: { color: '#64748b', boxWidth: 12, font: { size: 11 } } } },
 };
 const CHART_SCALE_BASE = {
-  grid: { color: 'rgba(255,255,255,.07)' }, ticks: { color: '#7ca3c8' },
+  grid: { color: 'rgba(15,23,42,.07)' }, ticks: { color: '#64748b' },
 };
 
 // ── 1. Evolução Mensal de Paradas (barras empilhadas por tipo) ──
@@ -2793,7 +2793,7 @@ function renderChartParadasMensal() {
       ...CHART_OPT_BASE,
       scales: {
         x: { stacked: true, ...CHART_SCALE_BASE },
-        y: { stacked: true, ...CHART_SCALE_BASE, ticks: { color: '#7ca3c8', callback: v => v + 'h' } },
+        y: { stacked: true, ...CHART_SCALE_BASE, ticks: { color: '#64748b', callback: v => v + 'h' } },
       },
     },
   });
@@ -2815,7 +2815,7 @@ function renderChartParadasTipo(paradas) {
     },
     options: {
       ...CHART_OPT_BASE,
-      plugins: { legend: { position: 'bottom', labels: { color: '#7ca3c8', boxWidth: 10, font: { size: 10 } } } },
+      plugins: { legend: { position: 'bottom', labels: { color: '#64748b', boxWidth: 10, font: { size: 10 } } } },
     },
   });
 }
@@ -2844,7 +2844,7 @@ function renderChartParadasSetor(paradas) {
       ...CHART_OPT_BASE,
       indexAxis: 'y',
       scales: {
-        x: { ...CHART_SCALE_BASE, ticks: { color: '#7ca3c8', callback: v => v + 'h' } },
+        x: { ...CHART_SCALE_BASE, ticks: { color: '#64748b', callback: v => v + 'h' } },
         y: { ...CHART_SCALE_BASE },
       },
       plugins: { legend: { display: false } },
@@ -2872,7 +2872,7 @@ function renderChartParadasTurno(paradas) {
     data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
     options: {
       ...CHART_OPT_BASE,
-      plugins: { legend: { position: 'bottom', labels: { color: '#7ca3c8', boxWidth: 10, font: { size: 10 } } } },
+      plugins: { legend: { position: 'bottom', labels: { color: '#64748b', boxWidth: 10, font: { size: 10 } } } },
     },
   });
 }
