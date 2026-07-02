@@ -17,9 +17,9 @@ desenvolvido como **SPA single-file** em HTML/CSS/JS puro com backend Supabase.
 | Backend/DB    | Supabase (PostgreSQL + API REST autogerada)                    |
 | Cliente DB    | `@supabase/supabase-js` v2 (via CDN)                           |
 | Fontes        | Syne (UI) + JetBrains Mono (dados numéricos)                   |
-| Hospedagem    | Arquivo único `index.html` (pode rodar localmente ou via HTTP) |
+| Hospedagem    | Arquivos estáticos (pode rodar localmente ou via HTTP)        |
 
-Credenciais Supabase estão inline no topo do bloco `<script>` do `index.html`
+Credenciais Supabase estão inline no topo do `app.js`
 (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) — é cliente anônimo, uso interno.
 
 ---
@@ -28,30 +28,34 @@ Credenciais Supabase estão inline no topo do bloco `<script>` do `index.html`
 
 ```
 PCM/
-├── index.html                ← SPA completa (HTML + CSS + JS em ~5100 linhas)
+├── index.html                ← Markup da SPA (~1470 linhas: páginas, modais, template de impressão)
+├── styles.css                ← Todo o CSS (~890 linhas: variáveis, layout, componentes, @media print)
+├── app.js                    ← Todo o JS (~3220 linhas: Supabase, STATE, render, CRUD)
 ├── supabase-schema.sql       ← DDL das tabelas (versão legada, falta producao/custos/paradas)
 ├── supabase-seed.sql         ← Dados iniciais (equipamentos, planos, lubrificação)
 ├── README.md                 ← Este arquivo
 └── *.xlsx / *.docx           ← Planilhas de referência (POPs, inventário, plano lubrif.)
 ```
 
-Todo o código de produção vive em **`index.html`**. Não há bundler, compilador
-ou transpilação — edite o arquivo direto.
+Não há bundler, compilador ou transpilação — edite os arquivos direto.
+`app.js` é um script clássico (sem `import`/`export`), carregado no fim
+do `<body>`; **não** converter para ES module, pois o sistema precisa
+funcionar via `file://`.
 
 ---
 
-## 3. Arquitetura do `index.html`
+## 3. Arquitetura
 
-Organização interna, em ordem:
-
-1. **`<style>`** — Variáveis CSS (`--navy`, `--accent3`, etc.), reset,
-   layout (topbar + sidebar + main), componentes (cards, tabelas, modais, badges).
-2. **`<body>`** — Topbar, sidebar com `nav-item`, e uma `<div id="page-*">`
-   por seção. Apenas uma página fica visível por vez (classe `.active`).
-3. **Modais** — `<div class="modal" id="modal-*">` escondidos, abertos/fechados
-   via JS (`abrir*()` / `fechar*()`).
-4. **`<script>`** — Inicializa Supabase, define `STATE`, funções de carga,
-   render, CRUD e helpers.
+1. **`styles.css`** — Variáveis CSS (`--navy`, `--accent3`, etc.), reset,
+   layout (topbar + sidebar + main), componentes (cards, tabelas, modais,
+   badges) e o bloco `@media print` do formulário de O.S.
+2. **`index.html`** — Topbar, sidebar com `nav-item`, uma `<div id="page-*">`
+   por seção (apenas uma visível por vez, classe `.active`), modais
+   (`<div class="modal" id="modal-*">`) e o template oculto de impressão
+   (`#print-os-section`).
+3. **`app.js`** — Inicializa Supabase, define `STATE`, funções de carga,
+   render, CRUD e helpers. Referenciado com `<script src="app.js">` no fim
+   do `<body>` (o DOM já existe quando executa).
 
 ### 3.1 Navegação
 
@@ -247,8 +251,8 @@ Campos: `data`, `tipo` (select fixo), `equipamento` (select fixo de setores),
 4. Campos DECIMAL vêm como string — **sempre** `parseFloat`.
 5. Datas DATE vêm sem TZ — **sempre** `new Date(d + 'T00:00:00')`.
 6. Charts recriados sem `.destroy()` vazam memória e duplicam tooltips.
-7. O arquivo é grande (~5100 linhas). Usar `Grep` com padrões específicos;
-   evitar leitura sequencial.
+7. Os arquivos são grandes (`app.js` ~3200 linhas). Usar `Grep` com padrões
+   específicos; evitar leitura sequencial.
 8. Credenciais do Supabase estão no cliente — é `anon key`, uso interno
    atrás da rede. Não commitar `service_role`.
 
@@ -256,8 +260,8 @@ Campos: `data`, `tipo` (select fixo), `equipamento` (select fixo de setores),
 
 ## 8. Fluxo de Desenvolvimento
 
-1. Edite `index.html` localmente.
-2. Teste abrindo o arquivo no navegador (funciona em `file://` também).
+1. Edite `index.html` (markup), `styles.css` (estilos) ou `app.js` (lógica).
+2. Teste abrindo `index.html` no navegador (funciona em `file://` também).
 3. Ao criar nova tabela no Supabase, aplique a policy RLS permissiva
    e atualize `loadAll()`, `STATE` e os renders.
 4. Commit com mensagem descritiva em PT-BR, push na branch combinada.
