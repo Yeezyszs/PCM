@@ -1,7 +1,7 @@
 # PCM — Planejamento e Controle de Manutenção
 
 Sistema web de Planejamento e Controle de Manutenção (PCM) para fábrica,
-desenvolvido como **SPA single-file** em HTML/CSS/JS puro com backend Supabase.
+desenvolvido em HTML/CSS/JS puro (sem framework) com backend Supabase.
 
 > Este README serve como contexto para o Claude (e demais colaboradores)
 > entenderem rapidamente a arquitetura, convenções e pontos críticos do projeto.
@@ -17,7 +17,7 @@ desenvolvido como **SPA single-file** em HTML/CSS/JS puro com backend Supabase.
 | Backend/DB    | Supabase (PostgreSQL + API REST autogerada)                    |
 | Cliente DB    | `@supabase/supabase-js` v2 (via CDN)                           |
 | Fontes        | Syne (UI) + JetBrains Mono (dados numéricos)                   |
-| Hospedagem    | Arquivos estáticos (pode rodar localmente ou via HTTP)        |
+| Hospedagem    | Arquivos estáticos (pode rodar localmente ou via HTTP)         |
 
 Credenciais Supabase estão inline no topo do `app.js`
 (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) — é cliente anônimo, uso interno.
@@ -29,9 +29,9 @@ Credenciais Supabase estão inline no topo do `app.js`
 ```
 PCM/
 ├── index.html                ← Markup da SPA (~1470 linhas: páginas, modais, template de impressão)
-├── styles.css                ← Todo o CSS (~890 linhas: variáveis, layout, componentes, @media print)
-├── app.js                    ← Todo o JS (~3220 linhas: Supabase, STATE, render, CRUD)
-├── supabase-schema.sql       ← DDL das tabelas (versão legada, falta producao/custos/paradas)
+├── styles.css                ← Todo o CSS (~900 linhas: variáveis, layout, componentes, @media print)
+├── app.js                    ← Todo o JS (~3300 linhas: Supabase, STATE, render, CRUD)
+├── supabase-schema.sql       ← DDL das tabelas (versão legada — vide §4)
 ├── supabase-seed.sql         ← Dados iniciais (equipamentos, planos, lubrificação)
 ├── README.md                 ← Este arquivo
 └── *.xlsx / *.docx           ← Planilhas de referência (POPs, inventário, plano lubrif.)
@@ -46,9 +46,9 @@ funcionar via `file://`.
 
 ## 3. Arquitetura
 
-1. **`styles.css`** — Variáveis CSS (`--navy`, `--accent3`, etc.), reset,
-   layout (topbar + sidebar + main), componentes (cards, tabelas, modais,
-   badges) e o bloco `@media print` do formulário de O.S.
+1. **`styles.css`** — Variáveis CSS, reset, layout (topbar + sidebar + main),
+   componentes (cards, tabelas, modais, badges) e o bloco `@media print`
+   do formulário de O.S.
 2. **`index.html`** — Topbar, sidebar com `nav-item`, uma `<div id="page-*">`
    por seção (apenas uma visível por vez, classe `.active`), modais
    (`<div class="modal" id="modal-*">`) e o template oculto de impressão
@@ -57,7 +57,26 @@ funcionar via `file://`.
    render, CRUD e helpers. Referenciado com `<script src="app.js">` no fim
    do `<body>` (o DOM já existe quando executa).
 
-### 3.1 Navegação
+### 3.1 Tema visual
+
+Tema **claro** na área principal com **topbar/sidebar escuras** (azul marinho):
+
+- Área principal: fundo `--bg: #eef2f7`, cards brancos (`--surface`),
+  texto escuro (`--text: #1e293b`), secundário cinza (`--muted: #64748b`),
+  destaque azul institucional (`--accent: #074798`).
+- Topbar, sidebar e loading screen usam `--navy-dark` e **re-escopam** as
+  variáveis semânticas (`--text`, `--muted`, `--border`) para claro-sobre-escuro:
+
+```css
+.topbar, .sidebar, #loading-screen {
+  --text: var(--white); --muted: rgba(244,249,255,.62); ...
+}
+```
+
+Ao criar componentes novos, use as variáveis semânticas — nunca cores fixas
+de texto claro (`#fff`, `#93d4ff` etc.), que quebram no fundo claro.
+
+### 3.2 Navegação
 
 - Sidebar: `<div class="nav-item" onclick="goPage('<id>')">` → mostra
   `<div id="page-<id>" class="page">`.
@@ -66,7 +85,7 @@ funcionar via `file://`.
   `cadastros`, `indicadores`.
 - Dentro de Cadastros há sub-abas (`switchCadTab`): `equip`, `itens`, `setores`.
 
-### 3.2 Estado em memória
+### 3.3 Estado em memória
 
 ```js
 let STATE = {
@@ -74,18 +93,19 @@ let STATE = {
   lubrificacao: [], luExecucoes: [], colaboradores: [],
   ferramentasEletrica: [], ferramentasMecanica: [], caixasFerramentas: [],
   setores: [],
-  producao: [],   // horas planejadas por mês/ano (KPIs)
-  custos: [],     // lançamentos de custos operacionais
-  paradas: [],    // paradas de fábrica (tipo/setor/turno/motivo/horas)
-  checkState: {}, // estado do checklist de ferramentas
+  producao: [],    // horas planejadas por mês/ano (KPIs)
+  custos: [],      // lançamentos de custos operacionais
+  paradas: [],     // paradas de fábrica (tipo/setor/turno/motivo/horas)
+  osExecucoes: [], // checklist de execução das O.S. (multi-linha)
+  checkState: {},  // estado do checklist de ferramentas
 };
 ```
 
-`loadAll()` (~linha 2220) executa um `Promise.all` com 16 `sb.from('*').select('*')`
+`loadAll()` executa um `Promise.all` com 17 `sb.from('*').select('*')`
 e normaliza os retornos para `STATE` (converte campos `snake_case` do DB para
 `camelCase` no JS quando necessário, e faz `parseFloat` em colunas DECIMAL).
 
-### 3.3 Renderização
+### 3.4 Renderização
 
 - Cada página tem uma função `render<Nome>()` que lê de `STATE` e monta o HTML
   via `innerHTML` + template literals.
@@ -93,7 +113,7 @@ e normaliza os retornos para `STATE` (converte campos `snake_case` do DB para
   que vá ao DOM (previne XSS). Nunca interpole strings cruas do DB.
 - Tabelas usam `.tbody.innerHTML = array.map(x => \`<tr>...</tr>\`).join('')`.
 
-### 3.4 CRUD
+### 3.5 CRUD
 
 Padrão recorrente para qualquer entidade:
 
@@ -119,7 +139,58 @@ sb.from('producao').upsert([payload], { onConflict: 'mes,ano' }).select().single
 
 ---
 
-## 4. Banco de Dados (Supabase)
+## 4. Ordens de Serviço — estrutura atual
+
+A O.S. é a entidade central do sistema. Campos e valores válidos
+(refletidos em CHECK constraints no banco):
+
+| Campo        | Valores                                                              |
+|--------------|----------------------------------------------------------------------|
+| `tipo`       | Corretiva · Corretiva Programada · Preventiva · Inspeção de Rota · melhoria |
+| `natureza`   | Predial · Elétrica · Mecânica — **exibido na UI como "Demanda"**     |
+| `prioridade` | Baixa · Normal · Urgente · Emergente (ordem crescente de criticidade)|
+| `status`     | Em Aberto · Concluído                                                |
+
+### Paradas vinculadas à O.S.
+
+Dois grupos independentes de checkbox + data/hora início e retorno,
+gravados em colunas da própria tabela `ordens`:
+
+- **Parada de Equipamento** — `parada_equip` (bool), `parada_equip_ini`,
+  `parada_equip_ini_h`, `parada_equip_ret`, `parada_equip_ret_h`
+- **Parada de Produção** — `parada_prod` (bool) + colunas análogas `parada_prod_*`
+
+No JS viram `paradaEquip`, `paradaEquipIni`, `paradaEquipIniH` etc. (camelCase).
+Os campos só aparecem no formulário quando o checkbox é marcado
+(`toggleParadaEquip()` / `toggleParadaProd()`).
+
+> Não confundir com a tabela `paradas` (paradas de fábrica p/ KPIs, §6) —
+> são registros independentes.
+
+### Checklist de Execução (`os_execucoes`)
+
+Tabela filha da O.S. (FK `os_id`, `ON DELETE CASCADE`), multi-linha —
+uma linha por mantenedor. Colunas: `mantenedor`, `data_exec`, `hora_ini`,
+`data_fim`, `hora_fim`, `data_fech`, `assinatura`.
+
+- Preenchido no modal de conclusão (`abrirConcluirOS` → `confirmarConclusao`).
+- Persistência por **delete + re-insert** de todas as linhas da O.S.
+- O campo `exec` da `ordens` é mantido como lista de mantenedores
+  (`"Nome1 / Nome2"`) para retrocompatibilidade com listagens.
+
+### Impressão de O.S.
+
+- Template oculto `#print-os-section` no `index.html` + CSS `@media print`
+  em `styles.css` (formato **A4 paisagem**).
+- `imprimirOS(id)` popula os placeholders (`pos-*`) via `textContent`/`innerHTML`
+  e chama `window.print()` — na impressão, todo o resto da página é ocultado.
+- **NUNCA gerar HTML de impressão como strings no JS** com tags `</body>`,
+  `</html>` ou comentários `<!--`: o parser HTML do navegador pode truncar
+  o script (bug histórico do projeto, ver §8 item 9).
+
+---
+
+## 5. Banco de Dados (Supabase)
 
 ### Tabelas em uso
 
@@ -129,7 +200,8 @@ sb.from('producao').upsert([payload], { onConflict: 'mes,ano' }).select().single
 | `setores`                    | Setores da fábrica                                     |
 | `equipamentos`               | Máquinas por setor                                     |
 | `equipamento_componentes`    | Itens/componentes de cada equipamento                  |
-| `ordens`                     | Ordens de Serviço (O.S.)                               |
+| `ordens`                     | Ordens de Serviço (O.S.) — inclui colunas de parada    |
+| `os_execucoes`               | Checklist de execução da O.S. (1 linha por mantenedor) |
 | `preventiva`                 | Manutenções preventivas trimestrais                    |
 | `planos`                     | Planos LU/PRM/IRM por equipamento                      |
 | `lubrificacao`               | Pontos de lubrificação                                 |
@@ -141,8 +213,9 @@ sb.from('producao').upsert([payload], { onConflict: 'mes,ano' }).select().single
 | `paradas`                    | Paradas de fábrica (tipo/setor/turno/motivo/horas)     |
 
 > O arquivo `supabase-schema.sql` só cobre as tabelas legadas.
-> `producao`, `custos` e `paradas` foram criadas depois — a DDL foi
-> aplicada direto via SQL Editor do Supabase e ainda não está versionada.
+> `producao`, `custos`, `paradas`, `os_execucoes` e as colunas de parada
+> da `ordens` foram criadas depois, direto via SQL Editor do Supabase,
+> e ainda não estão versionadas no repositório.
 
 ### RLS (Row Level Security)
 
@@ -169,7 +242,7 @@ projeto — o fallback `saved ?? payload` mitiga, mas não substitui a policy.
 
 ---
 
-## 5. Indicadores (tab `page-indicadores`)
+## 6. Indicadores (tab `page-indicadores`)
 
 Parte mais densa do sistema. KPIs calculados sobre período filtrado
 (default: últimos 6 meses):
@@ -211,6 +284,10 @@ Charts atuais:
 - **Paradas por Setor** — barra horizontal (top 10)
 - **Paradas por Turno** — doughnut (1°/2°/Revezamento + "Não informado")
 
+Cores dos eixos/legendas: `#64748b`; grid: `rgba(15,23,42,.05-.07)`
+(pensadas para o fundo claro). Paletas de datasets em `CHART_COLORS`,
+`CHART_COLORS_TURNO` e `SETOR_PALETTE`.
+
 ### Modal de Parada (`modal-parada`)
 
 Campos: `data`, `tipo` (select fixo), `equipamento` (select fixo de setores),
@@ -224,47 +301,61 @@ Campos: `data`, `tipo` (select fixo), `equipamento` (select fixo de setores),
 
 ---
 
-## 6. Convenções de Código
+## 7. Convenções de Código
 
 - **Nomes**: JS em `camelCase`, colunas Supabase em `snake_case`. Converter
   na entrada (`loadAll`) e saída (payloads de insert/update).
 - **XSS**: sempre `h(valor)` em qualquer interpolação de string do DB.
 - **Toasts**: `showToast(msg)` para sucesso, `showToast(msg, true)` para erro.
 - **Botões de ação em tabelas**: classes `.btn-sm`, `.btn-secondary`,
-  `.btn-warning` (amarelo) para editar, `.btn-danger` (vermelho) para excluir.
+  `.btn-warning` (âmbar) para editar, `.btn-danger` (vermelho) para excluir.
 - **Datas em inputs**: usar tipo `date` (`YYYY-MM-DD`), converter para
   `DD/MM/YYYY` só na renderização (`fmtD()`).
 - **Horas**: helper `fmtH(n)` devolve `"7,7"` (formato BR com vírgula).
-- **Modais**: abrir com `modal.classList.add('active')`, fechar removendo
-  a mesma classe. Sempre resetar campos do form ao abrir em modo "novo".
+- **Modais**: abrir com `openModal(id)`, fechar com `closeModal(id)`.
+  Sempre resetar campos do form ao abrir em modo "novo".
+- **Cores**: usar variáveis semânticas (`--text`, `--muted`, `--accent`…);
+  cores fixas só nas paletas de gráfico e badges (tons escuros p/ fundo claro).
+- **IDs, não índices**: CRUD de equipamentos, itens de ferramenta e
+  colaboradores referencia registros por `id` (nunca índice de array —
+  índices quebram com filtros/busca ativos).
 - **Não abstrair prematuramente**: mantemos cópia de template literal em cada
   `render*()` em vez de helper genérico — legibilidade > DRY neste projeto.
 
 ---
 
-## 7. Pontos Sensíveis / Gotchas
+## 8. Pontos Sensíveis / Gotchas
 
-1. **Novas tabelas precisam de policy RLS** (vide §4). Sem isso, nada grava.
+1. **Novas tabelas precisam de policy RLS** (vide §5). Sem isso, nada grava.
 2. `.select().single()` pode retornar `null` mesmo após insert válido quando
    a policy só permite write. Usar `saved ?? payload` como fallback.
 3. `STATE.producao` tem `UNIQUE(mes, ano)` → usar **upsert**, não insert.
 4. Campos DECIMAL vêm como string — **sempre** `parseFloat`.
 5. Datas DATE vêm sem TZ — **sempre** `new Date(d + 'T00:00:00')`.
 6. Charts recriados sem `.destroy()` vazam memória e duplicam tooltips.
-7. Os arquivos são grandes (`app.js` ~3200 linhas). Usar `Grep` com padrões
+7. Os arquivos são grandes (`app.js` ~3300 linhas). Usar `Grep` com padrões
    específicos; evitar leitura sequencial.
 8. Credenciais do Supabase estão no cliente — é `anon key`, uso interno
    atrás da rede. Não commitar `service_role`.
+9. **Nunca colocar `<!--`, `</body>`, `</html>` ou outras tags de fechamento
+   HTML dentro de strings JS** em código que vá inline num `<script>` —
+   o parser HTML pode truncar o script e quebrar a página inteira
+   (causou um loading infinito difícil de diagnosticar). Com o JS em
+   `app.js` externo o risco é menor, mas a regra continua valendo.
+10. Ao alterar CHECK constraints no banco (tipo/prioridade/natureza),
+    migrar ou apagar os registros com valores antigos **antes** de aplicar
+    o novo constraint, senão o `ALTER TABLE` falha (erro 23514).
 
 ---
 
-## 8. Fluxo de Desenvolvimento
+## 9. Fluxo de Desenvolvimento
 
 1. Edite `index.html` (markup), `styles.css` (estilos) ou `app.js` (lógica).
-2. Teste abrindo `index.html` no navegador (funciona em `file://` também).
-3. Ao criar nova tabela no Supabase, aplique a policy RLS permissiva
+2. Valide a sintaxe do JS: `node --check app.js`.
+3. Teste abrindo `index.html` no navegador (funciona em `file://` também).
+4. Ao criar nova tabela no Supabase, aplique a policy RLS permissiva
    e atualize `loadAll()`, `STATE` e os renders.
-4. Commit com mensagem descritiva em PT-BR, push na branch combinada.
+5. Commit com mensagem descritiva em PT-BR, push na branch combinada.
 
 Branch atual de trabalho: `main` (a feature branch
 `claude/review-pcm-system-*` é para revisões isoladas).
